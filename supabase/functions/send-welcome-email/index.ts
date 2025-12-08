@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.84.0";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -11,6 +12,28 @@ interface WelcomeEmailRequest {
   email: string;
   fullName: string;
   role: string;
+}
+
+async function verifyAuth(req: Request): Promise<{ userId: string } | null> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    console.error("No authorization header");
+    return null;
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    console.error("Auth verification failed:", error);
+    return null;
+  }
+
+  return { userId: user.id };
 }
 
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
@@ -48,9 +71,18 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Verify caller is authenticated
+    const auth = await verifyAuth(req);
+    if (!auth) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { email, fullName, role }: WelcomeEmailRequest = await req.json();
 
-    console.log("Sending welcome email to:", email);
+    console.log("Sending welcome email to:", email, "by user:", auth.userId);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const baseUrl = supabaseUrl.replace(".supabase.co", ".lovable.app");

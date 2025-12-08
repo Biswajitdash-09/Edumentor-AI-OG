@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Brain, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +21,6 @@ const signupSchema = z.object({
   fullName: z.string().trim().min(2, { message: "Name must be at least 2 characters" }).max(100),
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  role: z.enum(["student", "faculty", "admin"]),
 });
 
 const Auth = () => {
@@ -33,7 +31,7 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loading } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<string>("");
+  // Role is now fixed to 'student' for self-registration (security fix)
 
   const handleForgotPassword = async () => {
     if (!resetEmail) {
@@ -142,7 +140,7 @@ const Auth = () => {
     const password = formData.get("password") as string;
 
     try {
-      const validated = signupSchema.parse({ fullName, email, password, role: selectedRole });
+      const validated = signupSchema.parse({ fullName, email, password });
       
       const { data, error } = await supabase.auth.signUp({
         email: validated.email,
@@ -158,10 +156,10 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Assign user role using secure function
+        // Assign user role using secure function - only 'student' is allowed for self-registration
         const { error: roleError } = await supabase.rpc("assign_user_role", {
           _user_id: data.user.id,
-          _role: validated.role,
+          _role: "student" as const,
         });
 
         if (roleError) {
@@ -178,7 +176,7 @@ const Auth = () => {
           body: {
             email: validated.email,
             fullName: validated.fullName,
-            role: validated.role
+            role: "student"
           }
         }).catch(err => console.error("Failed to send welcome email:", err));
 
@@ -187,7 +185,7 @@ const Auth = () => {
           description: "Welcome to EduMentor AI!",
         });
         
-        navigate(`/dashboard/${validated.role}`);
+        navigate("/dashboard/student");
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -294,19 +292,6 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-role">I am a</Label>
-                  <Select required value={selectedRole} onValueChange={setSelectedRole}>
-                    <SelectTrigger id="signup-role">
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="faculty">Faculty</SelectItem>
-                      <SelectItem value="admin">Administrator</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
                   <Input 
                     id="signup-password"
@@ -316,12 +301,15 @@ const Auth = () => {
                     required
                   />
                 </div>
+                <p className="text-sm text-muted-foreground">
+                  You will be registered as a <strong>Student</strong>. Faculty and administrator accounts require approval.
+                </p>
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={isLoading || !selectedRole}
+                  disabled={isLoading}
                 >
-                  {isLoading ? "Creating account..." : "Create Account"}
+                  {isLoading ? "Creating account..." : "Create Student Account"}
                 </Button>
               </form>
             </TabsContent>

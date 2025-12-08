@@ -158,6 +158,19 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
+        // Create user profile
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .insert({
+            user_id: data.user.id,
+            email: validated.email,
+            full_name: validated.fullName,
+          });
+
+        if (profileError) {
+          console.error("Failed to create profile:", profileError);
+        }
+
         // Assign user role - all roles allowed for testing
         const { error: roleError } = await supabase.rpc("assign_user_role", {
           _user_id: data.user.id,

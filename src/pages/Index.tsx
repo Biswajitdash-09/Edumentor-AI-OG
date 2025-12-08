@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Brain, BookOpen, Users, BarChart3, Calendar, Award, MessageSquare, FileCheck } from "lucide-react";
+import { Brain, BookOpen, Users, BarChart3, Calendar, Award, MessageSquare, FileCheck, Heart, Mail, Linkedin, Github } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-image.jpg";
 import DemoVideoDialog from "@/components/DemoVideoDialog";
@@ -161,18 +161,57 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-8 sm:py-12 px-4 sm:px-6 border-t border-border">
         <div className="container mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-              <span className="text-lg sm:text-xl font-bold">EduMentor AI</span>
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2">
+                <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                <span className="text-lg sm:text-xl font-bold">EduMentor AI</span>
+              </div>
+              <div className="flex items-center gap-4 text-sm sm:text-base text-muted-foreground">
+                <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+                <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+              </div>
+              <p className="text-sm sm:text-base text-muted-foreground text-center">
+                © 2025 EduMentor AI. All rights reserved.
+              </p>
             </div>
-            <div className="flex items-center gap-4 text-sm sm:text-base text-muted-foreground">
-              <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
-              <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+            
+            {/* Developer Contact */}
+            <div className="border-t border-border pt-6">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <p className="flex items-center gap-2 text-sm sm:text-base text-muted-foreground">
+                  Made with <Heart className="w-4 h-4 text-red-500 fill-red-500" /> by <span className="font-semibold text-foreground">Biswajit Dash</span>
+                </p>
+                <div className="flex items-center gap-4">
+                  <a 
+                    href="mailto:biswajitdash929@gmail.com" 
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span className="hidden sm:inline">biswajitdash929@gmail.com</span>
+                    <span className="sm:hidden">Email</span>
+                  </a>
+                  <a 
+                    href="https://www.linkedin.com/in/biswajitdash09" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Linkedin className="w-4 h-4" />
+                    <span>LinkedIn</span>
+                  </a>
+                  <a 
+                    href="https://github.com/Biswajitdash-09" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Github className="w-4 h-4" />
+                    <span>GitHub</span>
+                  </a>
+                </div>
+              </div>
             </div>
-            <p className="text-sm sm:text-base text-muted-foreground text-center">
-              © 2025 EduMentor AI. All rights reserved.
-            </p>
           </div>
         </div>
       </footer>

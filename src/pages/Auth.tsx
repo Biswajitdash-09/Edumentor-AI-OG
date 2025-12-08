@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Brain, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -29,10 +30,10 @@ const Auth = () => {
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<"student" | "faculty" | "admin">("student");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loading } = useAuth();
-  // Role is now fixed to 'student' for self-registration (security fix)
 
   const handleForgotPassword = async () => {
     if (!resetEmail) {
@@ -157,10 +158,10 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Assign user role using secure function - only 'student' is allowed for self-registration
+        // Assign user role - all roles allowed for testing
         const { error: roleError } = await supabase.rpc("assign_user_role", {
           _user_id: data.user.id,
-          _role: "student" as const,
+          _role: selectedRole,
         });
 
         if (roleError) {
@@ -177,16 +178,16 @@ const Auth = () => {
           body: {
             email: validated.email,
             fullName: validated.fullName,
-            role: "student"
+            role: selectedRole
           }
         }).catch(err => console.error("Failed to send welcome email:", err));
 
         toast({
           title: "Account Created",
-          description: "Welcome to EduMentor AI!",
+          description: `Welcome to EduMentor AI as ${selectedRole}!`,
         });
         
-        navigate("/dashboard/student");
+        navigate(`/dashboard/${selectedRole}`);
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -306,15 +307,28 @@ const Auth = () => {
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-role">Register As</Label>
+                  <Select value={selectedRole} onValueChange={(value: "student" | "faculty" | "admin") => setSelectedRole(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="faculty">Faculty</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  You will be registered as a <strong>Student</strong>. Faculty and administrator accounts require approval.
+                  <strong>Testing Mode:</strong> All roles are available for signup.
                 </p>
                 <Button 
                   type="submit" 
                   className="w-full" 
                   disabled={isLoading}
                 >
-                  {isLoading ? "Creating account..." : "Create Student Account"}
+                  {isLoading ? "Creating account..." : `Create ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Account`}
                 </Button>
               </form>
             </TabsContent>

@@ -8,6 +8,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { SEOHead } from "@/components/SEOHead";
 
 interface DashboardStats {
   enrolledCourses: number;
@@ -37,12 +38,7 @@ const StudentDashboard = () => {
   const [upcomingClasses, setUpcomingClasses] = useState<UpcomingClass[]>([]);
   const [recentAnnouncements, setRecentAnnouncements] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth");
-    }
-  }, [user, authLoading, navigate]);
-
+  // Fetch data when user is available
   useEffect(() => {
     if (user) {
       fetchUserName();
@@ -169,8 +165,9 @@ const StudentDashboard = () => {
     }
   };
 
-  if (authLoading || !user) {
-    return null;
+  // Show loading state while fetching initial data
+  if (authLoading) {
+    return null; // ProtectedRoute handles the loading spinner
   }
 
   const quickStats = [
@@ -182,6 +179,10 @@ const StudentDashboard = () => {
 
   return (
     <DashboardLayout role="student">
+      <SEOHead 
+        title="Student Dashboard" 
+        description="View your enrolled courses, assignments, attendance, and upcoming classes."
+      />
       <div className="space-y-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">Welcome Back{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SEOHead } from "@/components/SEOHead";
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -212,6 +213,10 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background p-6">
+      <SEOHead 
+        title="Sign In" 
+        description="Sign in to EduMentor AI to access your courses, assignments, and academic tools."
+      />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">

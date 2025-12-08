@@ -9,6 +9,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { SEOHead } from "@/components/SEOHead";
 
 interface DashboardStats {
   activeCourses: number;
@@ -55,12 +56,7 @@ const FacultyDashboard = () => {
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [atRiskCount, setAtRiskCount] = useState(0);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth");
-    }
-  }, [user, authLoading, navigate]);
-
+  // Fetch data when user is available
   useEffect(() => {
     if (user) {
       fetchUserName();
@@ -276,8 +272,9 @@ const FacultyDashboard = () => {
     }
   };
 
-  if (authLoading || !user) {
-    return null;
+  // Show loading state while fetching auth
+  if (authLoading) {
+    return null; // ProtectedRoute handles the loading spinner
   }
 
   const quickStats = [
@@ -297,6 +294,10 @@ const FacultyDashboard = () => {
 
   return (
     <DashboardLayout role="faculty">
+      <SEOHead 
+        title="Faculty Dashboard" 
+        description="Manage your courses, track student progress, and view attendance analytics."
+      />
       <div className="space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>

@@ -16,6 +16,7 @@ interface Assignment {
   max_points: number;
   file_path?: string | null;
   file_name?: string | null;
+  course_id: string;
 }
 
 interface EditAssignmentDialogProps {
@@ -106,7 +107,7 @@ export const EditAssignmentDialog = ({ assignment, open, onOpenChange, onSuccess
       }, 200);
 
       // Upload new file
-      const path = `assignments/${Date.now()}-${newFile.name}`;
+      const path = `${assignment.course_id}/assignments/${Date.now()}-${newFile.name}`;
       const { error: uploadError } = await supabase.storage
         .from("course-materials")
         .upload(path, newFile);

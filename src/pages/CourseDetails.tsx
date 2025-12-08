@@ -51,6 +51,7 @@ interface Assignment {
   max_points: number;
   file_path?: string | null;
   file_name?: string | null;
+  course_id: string;
   submissions?: { grade: number; submitted_at: string }[];
 }
 
@@ -216,7 +217,7 @@ const CourseDetails = () => {
         setUploadProgress(prev => Math.min(prev + 15, 90));
       }, 200);
 
-      const path = `assignments/${id}/${Date.now()}-${assignmentFile.name}`;
+      const path = `${id}/assignments/${Date.now()}-${assignmentFile.name}`;
       const { error: uploadError } = await supabase.storage
         .from("course-materials")
         .upload(path, assignmentFile);

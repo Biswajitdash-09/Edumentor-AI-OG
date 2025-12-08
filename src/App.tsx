@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -21,6 +23,8 @@ import Schedule from "./pages/Schedule";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
 import Grades from "./pages/Grades";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,32 +32,110 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard/student" element={<StudentDashboard />} />
-          <Route path="/dashboard/faculty" element={<FacultyDashboard />} />
-          <Route path="/dashboard/admin" element={<AdminDashboard />} />
-          <Route path="/courses" element={<Courses />} />
-          <Route path="/courses/:id" element={<CourseDetails />} />
-          <Route path="/courses/:courseId/students/:studentId" element={<StudentProgress />} />
-          <Route path="/assignments/:id" element={<AssignmentSubmission />} />
-          <Route path="/assignments/:id/grade" element={<GradeSubmissions />} />
-          <Route path="/ai-mentor" element={<AIMentor />} />
-          <Route path="/attendance" element={<Attendance />} />
-          <Route path="/attendance/:id" element={<AttendanceAnalytics />} />
-          <Route path="/announcements" element={<Announcements />} />
-          <Route path="/schedule" element={<Schedule />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/grades" element={<Grades />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <ErrorBoundary>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+
+            {/* Protected routes - Student */}
+            <Route path="/dashboard/student" element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <StudentDashboard />
+              </ProtectedRoute>
+            } />
+
+            {/* Protected routes - Faculty */}
+            <Route path="/dashboard/faculty" element={
+              <ProtectedRoute allowedRoles={["faculty"]}>
+                <FacultyDashboard />
+              </ProtectedRoute>
+            } />
+
+            {/* Protected routes - Admin */}
+            <Route path="/dashboard/admin" element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+
+            {/* Protected routes - All authenticated users */}
+            <Route path="/courses" element={
+              <ProtectedRoute>
+                <Courses />
+              </ProtectedRoute>
+            } />
+            <Route path="/courses/:id" element={
+              <ProtectedRoute>
+                <CourseDetails />
+              </ProtectedRoute>
+            } />
+            <Route path="/courses/:courseId/students/:studentId" element={
+              <ProtectedRoute allowedRoles={["faculty", "admin"]}>
+                <StudentProgress />
+              </ProtectedRoute>
+            } />
+            <Route path="/assignments/:id" element={
+              <ProtectedRoute>
+                <AssignmentSubmission />
+              </ProtectedRoute>
+            } />
+            <Route path="/assignments/:id/grade" element={
+              <ProtectedRoute allowedRoles={["faculty", "admin"]}>
+                <GradeSubmissions />
+              </ProtectedRoute>
+            } />
+            <Route path="/ai-mentor" element={
+              <ProtectedRoute>
+                <AIMentor />
+              </ProtectedRoute>
+            } />
+            <Route path="/attendance" element={
+              <ProtectedRoute>
+                <Attendance />
+              </ProtectedRoute>
+            } />
+            <Route path="/attendance/:id" element={
+              <ProtectedRoute>
+                <AttendanceAnalytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/announcements" element={
+              <ProtectedRoute>
+                <Announcements />
+              </ProtectedRoute>
+            } />
+            <Route path="/schedule" element={
+              <ProtectedRoute>
+                <Schedule />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute allowedRoles={["faculty", "admin"]}>
+                <Analytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/grades" element={
+              <ProtectedRoute>
+                <Grades />
+              </ProtectedRoute>
+            } />
+
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </ErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );

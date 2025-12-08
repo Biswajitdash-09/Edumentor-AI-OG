@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Brain, BookOpen, Users, BarChart3, Calendar, Award, MessageSquare, FileCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-image.jpg";
+import DemoVideoDialog from "@/components/DemoVideoDialog";
 
 const Index = () => {
+  const [showDemo, setShowDemo] = useState(false);
   const features = [
     {
       icon: BookOpen,
@@ -88,7 +91,12 @@ const Index = () => {
                     Start Learning
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8">
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8"
+                  onClick={() => setShowDemo(true)}
+                >
                   Watch Demo
                 </Button>
               </div>
@@ -156,12 +164,18 @@ const Index = () => {
               <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               <span className="text-lg sm:text-xl font-bold">EduMentor AI</span>
             </div>
+            <div className="flex items-center gap-4 text-sm sm:text-base text-muted-foreground">
+              <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+              <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+            </div>
             <p className="text-sm sm:text-base text-muted-foreground text-center">
               © 2025 EduMentor AI. All rights reserved.
             </p>
           </div>
         </div>
       </footer>
+
+      <DemoVideoDialog open={showDemo} onOpenChange={setShowDemo} />
     </div>
   );
 };

@@ -16,6 +16,41 @@ interface NotificationEmailRequest {
   facultyName: string;
 }
 
+async function verifyFacultyAuth(req: Request, courseId: string): Promise<{ userId: string } | null> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    console.error("No authorization header");
+    return null;
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    console.error("Auth verification failed:", error);
+    return null;
+  }
+
+  // Verify user is faculty for this course
+  const supabaseService = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const { data: course, error: courseError } = await supabaseService
+    .from("courses")
+    .select("faculty_id")
+    .eq("id", courseId)
+    .single();
+
+  if (courseError || !course || course.faculty_id !== user.id) {
+    console.error("User is not faculty for this course");
+    return null;
+  }
+
+  return { userId: user.id };
+}
+
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   try {
     const response = await fetch("https://api.resend.com/emails", {
@@ -52,13 +87,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const { type, courseId, title, message, facultyName }: NotificationEmailRequest = await req.json();
+
+    // Verify caller is faculty for this course
+    const auth = await verifyFacultyAuth(req, courseId);
+    if (!auth) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - must be faculty for this course" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { type, courseId, title, message, facultyName }: NotificationEmailRequest = await req.json();
-
-    console.log("Sending notification email:", { type, courseId, title });
+    console.log("Sending notification email:", { type, courseId, title, byUser: auth.userId });
 
     // Get enrolled students for the course
     const { data: enrollments, error: enrollmentsError } = await supabase

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SEOHead } from "@/components/SEOHead";
 
 interface SystemStats {
   totalStudents: number;
@@ -50,12 +51,7 @@ const AdminDashboard = () => {
   const [roleChangeDialog, setRoleChangeDialog] = useState<{ user: UserInfo; newRole: string } | null>(null);
   const [isChangingRole, setIsChangingRole] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth");
-    }
-  }, [user, authLoading, navigate]);
-
+  // Fetch data when user is available
   useEffect(() => {
     if (user) {
       fetchDashboardData();
@@ -170,8 +166,9 @@ const AdminDashboard = () => {
     }
   };
 
-  if (authLoading || !user) {
-    return null;
+  // Show loading state while fetching auth
+  if (authLoading) {
+    return null; // ProtectedRoute handles the loading spinner
   }
 
   const systemStats = [
@@ -233,6 +230,10 @@ const AdminDashboard = () => {
 
   return (
     <DashboardLayout role="admin">
+      <SEOHead 
+        title="Admin Dashboard" 
+        description="Manage users, courses, and oversee your institution's operations."
+      />
       <div className="space-y-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>

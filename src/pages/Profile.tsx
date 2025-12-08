@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Mail, Shield, Calendar, Save, Loader2, Lock } from "lucide-react";
+import { User, Mail, Shield, Calendar, Save, Loader2, Lock, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { EmailPreferencesDialog } from "@/components/EmailPreferencesDialog";
+import { SEOHead } from "@/components/SEOHead";
 
 const ChangePasswordCard = () => {
   const { toast } = useToast();
@@ -216,6 +218,10 @@ const Profile = () => {
 
   return (
     <DashboardLayout>
+      <SEOHead 
+        title="Profile Settings" 
+        description="Manage your EduMentor AI account settings, profile information, and notification preferences."
+      />
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Profile Settings</h1>
@@ -314,6 +320,20 @@ const Profile = () => {
                 {user?.id?.slice(0, 8)}...
               </code>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Notification Preferences Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              Notification Preferences
+            </CardTitle>
+            <CardDescription>Manage your email notification settings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EmailPreferencesDialog />
           </CardContent>
         </Card>
 

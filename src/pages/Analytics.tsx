@@ -12,12 +12,24 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
   BarChart3, 
   TrendingUp, 
   AlertTriangle, 
   Users,
   BookOpen,
-  Calendar
+  Calendar,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Brain,
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 import {
@@ -35,6 +47,12 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import {
+  exportStudentReportPDF,
+  exportStudentReportExcel,
+  exportAttendancePDF,
+  exportAttendanceExcel,
+} from "@/lib/reportExport";
 
 interface Course {
   id: string;
@@ -59,6 +77,29 @@ interface AtRiskStudent {
   attendanceRate: number;
   avgGrade: number;
   riskLevel: "high" | "medium" | "low";
+  // AI prediction fields
+  riskScore?: number;
+  primaryRiskFactors?: string[];
+  recommendations?: string[];
+  predictedOutcome?: string;
+}
+
+interface AIPrediction {
+  predictions: Array<{
+    studentId: string;
+    riskLevel: "high" | "medium" | "low";
+    riskScore: number;
+    primaryRiskFactors: string[];
+    recommendations: string[];
+    predictedOutcome: string;
+  }>;
+  classSummary?: {
+    highRiskCount: number;
+    mediumRiskCount: number;
+    lowRiskCount: number;
+    topConcerns: string[];
+    suggestedClassActions: string[];
+  };
 }
 
 interface CourseMetric {
@@ -84,6 +125,9 @@ const Analytics = () => {
   const [gradeDistribution, setGradeDistribution] = useState<GradeDistribution[]>([]);
   const [atRiskStudents, setAtRiskStudents] = useState<AtRiskStudent[]>([]);
   const [courseMetrics, setCourseMetrics] = useState<CourseMetric[]>([]);
+  const [aiPredictions, setAiPredictions] = useState<AIPrediction | null>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<AtRiskStudent | null>(null);
   const [overallStats, setOverallStats] = useState({
     totalStudents: 0,
     avgAttendance: 0,
@@ -372,6 +416,112 @@ const Analytics = () => {
     }
   };
 
+  // Run AI-powered at-risk prediction
+  const runAIPrediction = async () => {
+    if (atRiskStudents.length === 0) {
+      toast({
+        title: "No Students to Analyze",
+        description: "There are no at-risk students to analyze.",
+      });
+      return;
+    }
+
+    setLoadingAI(true);
+    try {
+      const studentsData = atRiskStudents.map(s => ({
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        attendanceRate: s.attendanceRate,
+        avgGrade: s.avgGrade,
+        submissionRate: 75, // Default, can be enhanced
+        recentTrend: s.avgGrade < 60 ? "declining" : "stable",
+        missedClasses: Math.round((100 - s.attendanceRate) / 10),
+        lateSubmissions: s.avgGrade < 70 ? 3 : 1,
+      }));
+
+      const courseName = selectedCourse === "all" 
+        ? "All Courses" 
+        : courses.find(c => c.id === selectedCourse)?.title || "Course";
+
+      const { data, error } = await supabase.functions.invoke("predict-at-risk", {
+        body: { students: studentsData, courseContext: courseName },
+      });
+
+      if (error) throw error;
+
+      setAiPredictions(data);
+
+      // Merge AI predictions with at-risk students
+      if (data?.predictions) {
+        const updatedStudents = atRiskStudents.map(student => {
+          const prediction = data.predictions.find((p: any) => p.studentId === student.id);
+          if (prediction) {
+            return {
+              ...student,
+              riskLevel: prediction.riskLevel,
+              riskScore: prediction.riskScore,
+              primaryRiskFactors: prediction.primaryRiskFactors,
+              recommendations: prediction.recommendations,
+              predictedOutcome: prediction.predictedOutcome,
+            };
+          }
+          return student;
+        });
+        setAtRiskStudents(updatedStudents);
+      }
+
+      toast({
+        title: "AI Analysis Complete",
+        description: "Predictions have been generated for at-risk students.",
+      });
+    } catch (error: any) {
+      console.error("AI Prediction error:", error);
+      toast({
+        title: "AI Analysis Failed",
+        description: error.message || "Could not generate predictions.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
+  // Export handlers
+  const handleExportPDF = () => {
+    const courseName = selectedCourse === "all" 
+      ? "All Courses" 
+      : courses.find(c => c.id === selectedCourse)?.title || "Course";
+    
+    const students = atRiskStudents.map(s => ({
+      name: s.name,
+      email: s.email,
+      attendanceRate: s.attendanceRate,
+      avgGrade: s.avgGrade,
+      riskLevel: s.riskLevel,
+    }));
+    
+    exportStudentReportPDF(students, courseName, { start: startDate, end: endDate });
+    toast({ title: "PDF Downloaded", description: "Report has been saved." });
+  };
+
+  const handleExportExcel = () => {
+    const courseName = selectedCourse === "all" 
+      ? "All Courses" 
+      : courses.find(c => c.id === selectedCourse)?.title || "Course";
+    
+    const students = atRiskStudents.map(s => ({
+      name: s.name,
+      email: s.email,
+      attendanceRate: s.attendanceRate,
+      avgGrade: s.avgGrade,
+      riskLevel: s.riskLevel,
+    }));
+    
+    exportStudentReportExcel(students, courseName, { start: startDate, end: endDate });
+    toast({ title: "Excel Downloaded", description: "Report has been saved." });
+  };
+
   if (authLoading || !user) {
     return null;
   }
@@ -381,12 +531,45 @@ const Analytics = () => {
   return (
     <DashboardLayout role="faculty">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
             <p className="text-muted-foreground">
               Comprehensive insights into student performance and attendance
             </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={runAIPrediction}
+              disabled={loadingAI || atRiskStudents.length === 0}
+              className="gap-2"
+            >
+              {loadingAI ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              AI Prediction
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={handleExportPDF}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportExcel}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Export as Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -574,12 +757,73 @@ const Analytics = () => {
           </Card>
         </div>
 
+        {/* AI Summary Card */}
+        {aiPredictions?.classSummary && (
+          <Card className="border-primary/50 bg-gradient-to-r from-primary/5 to-primary/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="w-5 h-5 text-primary" />
+                AI-Powered Class Insights
+              </CardTitle>
+              <CardDescription>Predictive analysis based on student performance patterns</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold mb-2">Risk Distribution</h4>
+                  <div className="flex gap-4">
+                    <Badge variant="destructive" className="px-3 py-1">
+                      {aiPredictions.classSummary.highRiskCount} High Risk
+                    </Badge>
+                    <Badge variant="secondary" className="px-3 py-1">
+                      {aiPredictions.classSummary.mediumRiskCount} Medium Risk
+                    </Badge>
+                    <Badge variant="outline" className="px-3 py-1">
+                      {aiPredictions.classSummary.lowRiskCount} Low Risk
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Top Concerns</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    {aiPredictions.classSummary.topConcerns.map((concern, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <AlertTriangle className="w-3 h-3 mt-1 text-destructive shrink-0" />
+                        {concern}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              {aiPredictions.classSummary.suggestedClassActions.length > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                  <h4 className="font-semibold mb-2">Suggested Actions</h4>
+                  <div className="grid md:grid-cols-2 gap-2">
+                    {aiPredictions.classSummary.suggestedClassActions.map((action, i) => (
+                      <div key={i} className="flex items-start gap-2 text-sm p-2 bg-background rounded">
+                        <Sparkles className="w-3 h-3 mt-1 text-primary shrink-0" />
+                        {action}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* At-Risk Students */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-destructive" />
               At-Risk Students
+              {aiPredictions && (
+                <Badge variant="outline" className="ml-2 font-normal">
+                  <Brain className="w-3 h-3 mr-1" />
+                  AI Enhanced
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription>
               Students with attendance below 75% or average grade below 70%
@@ -597,29 +841,83 @@ const Analytics = () => {
                 {atRiskStudents.map((student) => (
                   <div
                     key={student.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    className={`p-4 border rounded-lg transition-all cursor-pointer hover:border-primary/50 ${
+                      selectedStudent?.id === student.id ? "border-primary bg-primary/5" : ""
+                    }`}
+                    onClick={() => setSelectedStudent(selectedStudent?.id === student.id ? null : student)}
                   >
-                    <div>
-                      <p className="font-medium">{student.name}</p>
-                      <p className="text-sm text-muted-foreground">{student.email}</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Attendance</p>
-                        <p className={`font-semibold ${student.attendanceRate < 75 ? "text-destructive" : ""}`}>
-                          {student.attendanceRate}%
-                        </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{student.name}</p>
+                        <p className="text-sm text-muted-foreground">{student.email}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Avg Grade</p>
-                        <p className={`font-semibold ${student.avgGrade < 70 ? "text-destructive" : ""}`}>
-                          {student.avgGrade}%
-                        </p>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Attendance</p>
+                          <p className={`font-semibold ${student.attendanceRate < 75 ? "text-destructive" : ""}`}>
+                            {student.attendanceRate}%
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Avg Grade</p>
+                          <p className={`font-semibold ${student.avgGrade < 70 ? "text-destructive" : ""}`}>
+                            {student.avgGrade}%
+                          </p>
+                        </div>
+                        {student.riskScore !== undefined && (
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">Risk Score</p>
+                            <p className={`font-semibold ${student.riskScore > 70 ? "text-destructive" : student.riskScore > 40 ? "text-yellow-600" : ""}`}>
+                              {student.riskScore}
+                            </p>
+                          </div>
+                        )}
+                        <Badge variant={student.riskLevel === "high" ? "destructive" : "secondary"}>
+                          {student.riskLevel} risk
+                        </Badge>
                       </div>
-                      <Badge variant={student.riskLevel === "high" ? "destructive" : "secondary"}>
-                        {student.riskLevel} risk
-                      </Badge>
                     </div>
+                    
+                    {/* AI Prediction Details */}
+                    {selectedStudent?.id === student.id && student.primaryRiskFactors && (
+                      <div className="mt-4 pt-4 border-t space-y-3 animate-in slide-in-from-top-2">
+                        <div>
+                          <h5 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 text-destructive" />
+                            Risk Factors
+                          </h5>
+                          <div className="flex flex-wrap gap-2">
+                            {student.primaryRiskFactors.map((factor, i) => (
+                              <Badge key={i} variant="outline" className="text-destructive border-destructive/50">
+                                {factor}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        {student.recommendations && (
+                          <div>
+                            <h5 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-primary" />
+                              Recommended Actions
+                            </h5>
+                            <ul className="text-sm space-y-1">
+                              {student.recommendations.map((rec, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <span className="text-primary">•</span>
+                                  {rec}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {student.predictedOutcome && (
+                          <div className="p-3 bg-muted rounded-lg">
+                            <h5 className="text-sm font-semibold mb-1">Predicted Outcome</h5>
+                            <p className="text-sm text-muted-foreground">{student.predictedOutcome}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

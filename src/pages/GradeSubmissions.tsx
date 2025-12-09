@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/DashboardLayout";
+import PlagiarismChecker from "@/components/PlagiarismChecker";
 import { FileText, Download, Award } from "lucide-react";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -208,6 +209,9 @@ const GradeSubmissions = () => {
             <TabsTrigger value="graded">
               Graded ({gradedSubmissions.length})
             </TabsTrigger>
+            <TabsTrigger value="plagiarism">
+              Plagiarism Check
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="ungraded" className="space-y-4">
@@ -344,6 +348,17 @@ const GradeSubmissions = () => {
                 <p className="text-muted-foreground">No graded submissions yet</p>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="plagiarism" className="space-y-4">
+            <PlagiarismChecker
+              assignmentId={id || ""}
+              submissions={submissions.map(s => ({
+                id: s.id,
+                content: s.content,
+                student_name: s.profiles.full_name
+              }))}
+            />
           </TabsContent>
         </Tabs>
       </div>

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Brain, BookOpen, Users, BarChart3, Calendar, Award, MessageSquare, FileCheck, Heart, Mail, Linkedin, Github, Download } from "lucide-react";
+import { Brain, BookOpen, Users, BarChart3, Calendar, Award, MessageSquare, FileCheck, Heart, Mail, Linkedin, Github, Download, Moon, Sun } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-image.jpg";
 import DemoVideoDialog from "@/components/DemoVideoDialog";
@@ -10,6 +10,33 @@ import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 
 const Index = () => {
   const [showDemo, setShowDemo] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      return document.documentElement.classList.contains("dark");
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDark]);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      setIsDark(true);
+    } else if (savedTheme === "light") {
+      setIsDark(false);
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setIsDark(true);
+    }
+  }, []);
   const features = [
     {
       icon: BookOpen,
@@ -66,6 +93,14 @@ const Index = () => {
               <span className="text-lg sm:text-2xl font-bold text-foreground">EduMentor AI</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsDark(!isDark)}
+                className="h-9 w-9"
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
               <Link to="/install" className="hidden sm:flex">
                 <Button variant="ghost" size="sm" className="text-sm gap-1">
                   <Download className="w-4 h-4" />

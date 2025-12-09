@@ -5,10 +5,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, FileText, ClipboardList, Upload, Download, Calendar, Award, Users, Edit, Trash2, MessageSquare, Search, FolderPlus, Folder, X } from "lucide-react";
+import { BookOpen, FileText, ClipboardList, Upload, Download, Calendar, Award, Users, Edit, Trash2, MessageSquare, Search, FolderPlus, Folder, X, Video } from "lucide-react";
 import BulkStudentImport from "@/components/BulkStudentImport";
 import DocumentPreview from "@/components/DocumentPreview";
 import DiscussionForum from "@/components/DiscussionForum";
+import CourseMeetings from "@/components/CourseMeetings";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -485,6 +486,10 @@ const CourseDetails = () => {
               <MessageSquare className="w-4 h-4 mr-2" />
               Discussions
             </TabsTrigger>
+            <TabsTrigger value="meetings">
+              <Video className="w-4 h-4 mr-2" />
+              Meetings
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="assignments" className="space-y-4">
@@ -868,6 +873,10 @@ const CourseDetails = () => {
               userRole={userRole}
               isFacultyOwner={userRole === "faculty" && course.faculty_id === user?.id}
             />
+          </TabsContent>
+
+          <TabsContent value="meetings" className="space-y-4">
+            <CourseMeetings courseId={id!} />
           </TabsContent>
         </Tabs>
 

@@ -30,7 +30,9 @@ const Auth = () => {
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<"student" | "faculty" | "admin">("student");
+  const [selectedRole, setSelectedRole] = useState<"student" | "faculty" | "admin" | "parent">("student");
+  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
+  const [phone, setPhone] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loading } = useAuth();
@@ -322,7 +324,7 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-role">Register As</Label>
-                  <Select value={selectedRole} onValueChange={(value: "student" | "faculty" | "admin") => setSelectedRole(value)}>
+                  <Select value={selectedRole} onValueChange={(value: "student" | "faculty" | "admin" | "parent") => setSelectedRole(value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
@@ -330,6 +332,7 @@ const Auth = () => {
                       <SelectItem value="student">Student</SelectItem>
                       <SelectItem value="faculty">Faculty</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="parent">Parent</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

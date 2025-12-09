@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Brain, Loader2 } from "lucide-react";
+import { Brain, Loader2, Phone, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SEOHead } from "@/components/SEOHead";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -25,6 +26,10 @@ const signupSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
+const phoneSchema = z.object({
+  phone: z.string().regex(/^\+[1-9]\d{6,14}$/, { message: "Phone must be in format +1234567890" }),
+});
+
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
@@ -33,6 +38,8 @@ const Auth = () => {
   const [selectedRole, setSelectedRole] = useState<"student" | "faculty" | "admin" | "parent">("student");
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [phone, setPhone] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loading } = useAuth();
@@ -251,43 +258,181 @@ const Auth = () => {
             </TabsList>
 
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email"
-                    name="email"
-                    type="email" 
-                    placeholder="your.email@institution.edu"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input 
-                    id="password"
-                    name="password"
-                    type="password" 
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading}
+              <div className="flex gap-2 mb-4">
+                <Button
+                  type="button"
+                  variant={authMethod === "email" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => { setAuthMethod("email"); setOtpSent(false); }}
                 >
-                  {isLoading ? "Signing in..." : "Sign In"}
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  className="w-full" 
-                  onClick={() => setForgotPasswordOpen(true)}
+                <Button
+                  type="button"
+                  variant={authMethod === "phone" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => { setAuthMethod("phone"); setOtpSent(false); }}
                 >
-                  Forgot your password?
+                  <Phone className="h-4 w-4 mr-2" />
+                  Phone
                 </Button>
-              </form>
+              </div>
+
+              {authMethod === "email" ? (
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                      id="email"
+                      name="email"
+                      type="email" 
+                      placeholder="your.email@institution.edu"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input 
+                      id="password"
+                      name="password"
+                      type="password" 
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Signing in..." : "Sign In"}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="w-full" 
+                    onClick={() => setForgotPasswordOpen(true)}
+                  >
+                    Forgot your password?
+                  </Button>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  {!otpSent ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input 
+                          id="phone"
+                          type="tel" 
+                          placeholder="+1234567890"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Include country code (e.g., +1 for US)
+                        </p>
+                      </div>
+                      <Button 
+                        type="button"
+                        className="w-full" 
+                        disabled={isLoading}
+                        onClick={async () => {
+                          try {
+                            const validated = phoneSchema.parse({ phone });
+                            setIsLoading(true);
+                            const { error } = await supabase.auth.signInWithOtp({
+                              phone: validated.phone,
+                            });
+                            if (error) throw error;
+                            setOtpSent(true);
+                            toast({
+                              title: "OTP Sent",
+                              description: "Check your phone for the verification code",
+                            });
+                          } catch (error: any) {
+                            toast({
+                              title: "Error",
+                              description: error.message || "Failed to send OTP",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsLoading(false);
+                          }
+                        }}
+                      >
+                        {isLoading ? "Sending..." : "Send OTP"}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Enter Verification Code</Label>
+                        <div className="flex justify-center">
+                          <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                            <InputOTPGroup>
+                              <InputOTPSlot index={0} />
+                              <InputOTPSlot index={1} />
+                              <InputOTPSlot index={2} />
+                              <InputOTPSlot index={3} />
+                              <InputOTPSlot index={4} />
+                              <InputOTPSlot index={5} />
+                            </InputOTPGroup>
+                          </InputOTP>
+                        </div>
+                      </div>
+                      <Button 
+                        type="button"
+                        className="w-full" 
+                        disabled={isLoading || otp.length !== 6}
+                        onClick={async () => {
+                          try {
+                            setIsLoading(true);
+                            const { data, error } = await supabase.auth.verifyOtp({
+                              phone,
+                              token: otp,
+                              type: "sms",
+                            });
+                            if (error) throw error;
+                            if (data.user) {
+                              const { data: roleData } = await supabase
+                                .from("user_roles")
+                                .select("role")
+                                .eq("user_id", data.user.id)
+                                .single();
+                              
+                              toast({
+                                title: "Login Successful",
+                                description: "Welcome to EduMentor AI!",
+                              });
+                              navigate(`/dashboard/${roleData?.role || "student"}`);
+                            }
+                          } catch (error: any) {
+                            toast({
+                              title: "Verification Failed",
+                              description: error.message,
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsLoading(false);
+                          }
+                        }}
+                      >
+                        {isLoading ? "Verifying..." : "Verify OTP"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="link" 
+                        className="w-full" 
+                        onClick={() => { setOtpSent(false); setOtp(""); }}
+                      >
+                        Use different number
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="signup">

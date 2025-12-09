@@ -37,9 +37,14 @@ const Auth = () => {
   const [resetLoading, setResetLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"student" | "faculty" | "admin" | "parent">("student");
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
+  const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
   const [phone, setPhone] = useState("");
+  const [signupPhone, setSignupPhone] = useState("");
+  const [signupName, setSignupName] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [signupOtpSent, setSignupOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
+  const [signupOtp, setSignupOtp] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loading } = useAuth();
@@ -436,62 +441,285 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Full Name</Label>
-                  <Input 
-                    id="signup-name"
-                    name="fullName"
-                    type="text" 
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input 
-                    id="signup-email"
-                    name="email"
-                    type="email" 
-                    placeholder="your.email@institution.edu"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input 
-                    id="signup-password"
-                    name="password"
-                    type="password" 
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-role">Register As</Label>
-                  <Select value={selectedRole} onValueChange={(value: "student" | "faculty" | "admin" | "parent") => setSelectedRole(value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="faculty">Faculty</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="parent">Parent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  <strong>Testing Mode:</strong> All roles are available for signup.
-                </p>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading}
+              <div className="flex gap-2 mb-4">
+                <Button
+                  type="button"
+                  variant={signupMethod === "email" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => { setSignupMethod("email"); setSignupOtpSent(false); }}
                 >
-                  {isLoading ? "Creating account..." : `Create ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Account`}
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email
                 </Button>
-              </form>
+                <Button
+                  type="button"
+                  variant={signupMethod === "phone" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => { setSignupMethod("phone"); setSignupOtpSent(false); }}
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  Phone
+                </Button>
+              </div>
+
+              {signupMethod === "email" ? (
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Input 
+                      id="signup-name"
+                      name="fullName"
+                      type="text" 
+                      placeholder="John Doe"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input 
+                      id="signup-email"
+                      name="email"
+                      type="email" 
+                      placeholder="your.email@institution.edu"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password</Label>
+                    <Input 
+                      id="signup-password"
+                      name="password"
+                      type="password" 
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-role">Register As</Label>
+                    <Select value={selectedRole} onValueChange={(value: "student" | "faculty" | "admin" | "parent") => setSelectedRole(value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="student">Student</SelectItem>
+                        <SelectItem value="faculty">Faculty</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="parent">Parent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Testing Mode:</strong> All roles are available for signup.
+                  </p>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Creating account..." : `Create ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Account`}
+                  </Button>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  {!signupOtpSent ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-phone-name">Full Name</Label>
+                        <Input 
+                          id="signup-phone-name"
+                          type="text" 
+                          placeholder="John Doe"
+                          value={signupName}
+                          onChange={(e) => setSignupName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-phone">Phone Number</Label>
+                        <Input 
+                          id="signup-phone"
+                          type="tel" 
+                          placeholder="+1234567890"
+                          value={signupPhone}
+                          onChange={(e) => setSignupPhone(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Include country code (e.g., +1 for US)
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Register As</Label>
+                        <Select value={selectedRole} onValueChange={(value: "student" | "faculty" | "admin" | "parent") => setSelectedRole(value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="student">Student</SelectItem>
+                            <SelectItem value="faculty">Faculty</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="parent">Parent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Testing Mode:</strong> All roles are available for signup.
+                      </p>
+                      <Button 
+                        type="button"
+                        className="w-full" 
+                        disabled={isLoading || !signupName.trim() || !signupPhone.trim()}
+                        onClick={async () => {
+                          try {
+                            const validated = phoneSchema.parse({ phone: signupPhone });
+                            if (signupName.trim().length < 2) {
+                              throw new Error("Name must be at least 2 characters");
+                            }
+                            setIsLoading(true);
+                            const { error } = await supabase.auth.signInWithOtp({
+                              phone: validated.phone,
+                              options: {
+                                data: {
+                                  full_name: signupName.trim(),
+                                }
+                              }
+                            });
+                            if (error) throw error;
+                            setSignupOtpSent(true);
+                            toast({
+                              title: "OTP Sent",
+                              description: "Check your phone for the verification code",
+                            });
+                          } catch (error: any) {
+                            toast({
+                              title: "Error",
+                              description: error.message || "Failed to send OTP",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsLoading(false);
+                          }
+                        }}
+                      >
+                        {isLoading ? "Sending..." : "Send OTP"}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Enter Verification Code</Label>
+                        <div className="flex justify-center">
+                          <InputOTP maxLength={6} value={signupOtp} onChange={setSignupOtp}>
+                            <InputOTPGroup>
+                              <InputOTPSlot index={0} />
+                              <InputOTPSlot index={1} />
+                              <InputOTPSlot index={2} />
+                              <InputOTPSlot index={3} />
+                              <InputOTPSlot index={4} />
+                              <InputOTPSlot index={5} />
+                            </InputOTPGroup>
+                          </InputOTP>
+                        </div>
+                      </div>
+                      <Button 
+                        type="button"
+                        className="w-full" 
+                        disabled={isLoading || signupOtp.length !== 6}
+                        onClick={async () => {
+                          try {
+                            setIsLoading(true);
+                            const { data, error } = await supabase.auth.verifyOtp({
+                              phone: signupPhone,
+                              token: signupOtp,
+                              type: "sms",
+                            });
+                            if (error) throw error;
+                            
+                            if (data.user) {
+                              // Check if user already has a role (existing user)
+                              const { data: existingRole } = await supabase
+                                .from("user_roles")
+                                .select("role")
+                                .eq("user_id", data.user.id)
+                                .single();
+
+                              if (existingRole) {
+                                // Existing user - redirect to their dashboard
+                                toast({
+                                  title: "Welcome Back",
+                                  description: "Login successful!",
+                                });
+                                navigate(`/dashboard/${existingRole.role}`);
+                              } else {
+                                // New user - create profile and assign role
+                                const { error: profileError } = await supabase
+                                  .from("profiles")
+                                  .insert({
+                                    user_id: data.user.id,
+                                    email: data.user.phone || "",
+                                    full_name: signupName.trim(),
+                                    phone: signupPhone,
+                                  });
+
+                                if (profileError) {
+                                  console.error("Failed to create profile:", profileError);
+                                }
+
+                                // Assign user role
+                                const { error: roleError } = await supabase.rpc("assign_user_role", {
+                                  _user_id: data.user.id,
+                                  _role: selectedRole,
+                                });
+
+                                if (roleError) {
+                                  toast({
+                                    title: "Signup Error",
+                                    description: "Failed to assign role. Please try again.",
+                                    variant: "destructive",
+                                  });
+                                  throw roleError;
+                                }
+
+                                // Send welcome email (don't await)
+                                supabase.functions.invoke("send-welcome-email", {
+                                  body: {
+                                    email: signupPhone,
+                                    fullName: signupName.trim(),
+                                    role: selectedRole
+                                  }
+                                }).catch(err => console.error("Failed to send welcome email:", err));
+
+                                toast({
+                                  title: "Account Created",
+                                  description: `Welcome to EduMentor AI as ${selectedRole}!`,
+                                });
+                                
+                                navigate(`/dashboard/${selectedRole}`);
+                              }
+                            }
+                          } catch (error: any) {
+                            toast({
+                              title: "Verification Failed",
+                              description: error.message,
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsLoading(false);
+                          }
+                        }}
+                      >
+                        {isLoading ? "Creating account..." : `Create ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Account`}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="link" 
+                        className="w-full" 
+                        onClick={() => { setSignupOtpSent(false); setSignupOtp(""); }}
+                      >
+                        Use different number
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </Card>

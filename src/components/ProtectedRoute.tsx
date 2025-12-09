@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { Loader2 } from "lucide-react";
 
-type AppRole = "student" | "faculty" | "admin";
+type AppRole = "student" | "faculty" | "admin" | "parent";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

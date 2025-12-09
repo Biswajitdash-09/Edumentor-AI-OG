@@ -41,6 +41,7 @@ const Auth = () => {
   const [phone, setPhone] = useState("");
   const [signupPhone, setSignupPhone] = useState("");
   const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [signupOtpSent, setSignupOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
@@ -547,6 +548,19 @@ const Auth = () => {
                         </p>
                       </div>
                       <div className="space-y-2">
+                        <Label htmlFor="signup-phone-email">Email (for notifications)</Label>
+                        <Input 
+                          id="signup-phone-email"
+                          type="email" 
+                          placeholder="your.email@example.com"
+                          value={signupEmail}
+                          onChange={(e) => setSignupEmail(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Optional: Add email to receive notifications
+                        </p>
+                      </div>
+                      <div className="space-y-2">
                         <Label>Register As</Label>
                         <Select value={selectedRole} onValueChange={(value: "student" | "faculty" | "admin" | "parent") => setSelectedRole(value)}>
                           <SelectTrigger>
@@ -654,7 +668,7 @@ const Auth = () => {
                                   .from("profiles")
                                   .insert({
                                     user_id: data.user.id,
-                                    email: data.user.phone || "",
+                                    email: signupEmail.trim() || signupPhone,
                                     full_name: signupName.trim(),
                                     phone: signupPhone,
                                   });
@@ -678,14 +692,16 @@ const Auth = () => {
                                   throw roleError;
                                 }
 
-                                // Send welcome email (don't await)
-                                supabase.functions.invoke("send-welcome-email", {
-                                  body: {
-                                    email: signupPhone,
-                                    fullName: signupName.trim(),
-                                    role: selectedRole
-                                  }
-                                }).catch(err => console.error("Failed to send welcome email:", err));
+                                // Send welcome email (don't await) - only if email provided
+                                if (signupEmail.trim()) {
+                                  supabase.functions.invoke("send-welcome-email", {
+                                    body: {
+                                      email: signupEmail.trim(),
+                                      fullName: signupName.trim(),
+                                      role: selectedRole
+                                    }
+                                  }).catch(err => console.error("Failed to send welcome email:", err));
+                                }
 
                                 toast({
                                   title: "Account Created",

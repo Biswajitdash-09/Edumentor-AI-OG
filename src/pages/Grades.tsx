@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Award, BookOpen, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Award, BookOpen, TrendingUp, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
+import { useToast } from "@/hooks/use-toast";
 
 interface GradeEntry {
   assignment_id: string;
@@ -29,17 +32,17 @@ interface CourseGrades {
 
 const Grades = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [courseGrades, setCourseGrades] = useState<CourseGrades[]>([]);
   const [loading, setLoading] = useState(true);
   const [overallGPA, setOverallGPA] = useState<number>(0);
+  const [hasNewGrades, setHasNewGrades] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchGrades();
-    }
-  }, [user]);
-
-  const fetchGrades = async () => {
+  const fetchGrades = useCallback(async () => {
+    if (!user) return;
+    
+    setHasNewGrades(false);
+    
     const { data: submissions, error } = await supabase
       .from("submissions")
       .select(`
@@ -57,7 +60,7 @@ const Grades = () => {
           )
         )
       `)
-      .eq("student_id", user?.id)
+      .eq("student_id", user.id)
       .not("grade", "is", null)
       .order("graded_at", { ascending: false });
 
@@ -117,7 +120,35 @@ const Grades = () => {
     }
 
     setLoading(false);
-  };
+  }, [user]);
+
+  // Subscribe to real-time grade updates
+  useRealtimeSubscription(
+    [
+      {
+        table: "submissions",
+        event: "UPDATE",
+        filter: `student_id=eq.${user?.id}`,
+        onData: (payload) => {
+          // Check if this update includes a new grade
+          if (payload.new?.grade !== null && payload.old?.grade === null) {
+            setHasNewGrades(true);
+            toast({
+              title: "New Grade Available",
+              description: "Your submission has been graded! Click refresh to see the update.",
+            });
+          }
+        },
+      },
+    ],
+    !!user
+  );
+
+  useEffect(() => {
+    if (user) {
+      fetchGrades();
+    }
+  }, [user, fetchGrades]);
 
   const getGradeColor = (percent: number) => {
     if (percent >= 90) return "text-green-600";
@@ -157,9 +188,17 @@ const Grades = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Grade Report</h1>
-          <p className="text-muted-foreground">View your academic performance across all courses</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Grade Report</h1>
+            <p className="text-muted-foreground">View your academic performance across all courses</p>
+          </div>
+          {hasNewGrades && (
+            <Button onClick={fetchGrades} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Refresh Grades
+            </Button>
+          )}
         </div>
 
         {/* Summary Cards */}
@@ -237,6 +276,11 @@ const Grades = () => {
                             <p className="text-xs text-muted-foreground">
                               Graded: {format(new Date(grade.graded_at), "MMM d, yyyy")}
                             </p>
+                            {grade.feedback && (
+                              <p className="text-xs text-muted-foreground mt-1 italic">
+                                "{grade.feedback}"
+                              </p>
+                            )}
                           </div>
                           <div className="text-right">
                             <Badge variant="outline" className={getGradeColor(percent)}>

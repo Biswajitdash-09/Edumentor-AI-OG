@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Calendar, FileText, MessageSquare, TrendingUp, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { BookOpen, Calendar, FileText, MessageSquare, TrendingUp, Clock, Bell } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { SEOHead } from "@/components/SEOHead";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 interface DashboardStats {
   enrolledCourses: number;
@@ -37,41 +39,27 @@ const StudentDashboard = () => {
   });
   const [upcomingClasses, setUpcomingClasses] = useState<UpcomingClass[]>([]);
   const [recentAnnouncements, setRecentAnnouncements] = useState<any[]>([]);
+  const [newActivityCount, setNewActivityCount] = useState(0);
 
-  // Fetch data when user is available
-  useEffect(() => {
-    if (user) {
-      fetchUserName();
-      fetchDashboardData();
-    }
-  }, [user]);
-
-  const fetchUserName = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("user_id", user!.id)
-      .single();
+  const fetchDashboardData = useCallback(async () => {
+    if (!user) return;
     
-    if (data) setUserName(data.full_name);
-  };
-
-  const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setNewActivityCount(0);
 
       // Fetch enrolled courses count
       const { count: enrolledCount } = await supabase
         .from("enrollments")
         .select("*", { count: "exact", head: true })
-        .eq("student_id", user!.id)
+        .eq("student_id", user.id)
         .eq("status", "active");
 
       // Fetch assignments due (no submission yet)
       const { data: enrolledCourses } = await supabase
         .from("enrollments")
         .select("course_id")
-        .eq("student_id", user!.id)
+        .eq("student_id", user.id)
         .eq("status", "active");
 
       const courseIds = enrolledCourses?.map((e) => e.course_id) || [];
@@ -90,7 +78,7 @@ const StudentDashboard = () => {
           const { data: submissions } = await supabase
             .from("submissions")
             .select("assignment_id")
-            .eq("student_id", user!.id)
+            .eq("student_id", user.id)
             .in("assignment_id", assignmentIds);
 
           const submittedIds = submissions?.map((s) => s.assignment_id) || [];
@@ -102,7 +90,7 @@ const StudentDashboard = () => {
       const { data: attendanceRecords } = await supabase
         .from("attendance_records")
         .select("status")
-        .eq("student_id", user!.id);
+        .eq("student_id", user.id);
 
       const attendanceRate =
         attendanceRecords && attendanceRecords.length > 0
@@ -163,11 +151,59 @@ const StudentDashboard = () => {
     } finally {
       setLoading(false);
     }
+  }, [user]);
+
+  // Subscribe to real-time updates for assignments and attendance sessions
+  useRealtimeSubscription(
+    [
+      {
+        table: "assignments",
+        event: "INSERT",
+        onData: () => {
+          setNewActivityCount((prev) => prev + 1);
+          toast({
+            title: "New Assignment Posted",
+            description: "A new assignment has been added to one of your courses.",
+          });
+        },
+      },
+      {
+        table: "attendance_sessions",
+        event: "INSERT",
+        onData: () => {
+          setNewActivityCount((prev) => prev + 1);
+          toast({
+            title: "Attendance Session Active",
+            description: "An attendance session is now open!",
+          });
+        },
+      },
+    ],
+    !!user
+  );
+
+  // Fetch data when user is available
+  useEffect(() => {
+    if (user) {
+      fetchUserName();
+      fetchDashboardData();
+    }
+  }, [user, fetchDashboardData]);
+
+  const fetchUserName = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .single();
+    
+    if (data) setUserName(data.full_name);
   };
 
   // Show loading state while fetching initial data
   if (authLoading) {
-    return null; // ProtectedRoute handles the loading spinner
+    return null;
   }
 
   const quickStats = [
@@ -184,9 +220,17 @@ const StudentDashboard = () => {
         description="View your enrolled courses, assignments, attendance, and upcoming classes."
       />
       <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Welcome Back{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
-          <p className="text-muted-foreground">Here's what's happening with your courses today.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Welcome Back{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
+            <p className="text-muted-foreground">Here's what's happening with your courses today.</p>
+          </div>
+          {newActivityCount > 0 && (
+            <Button onClick={fetchDashboardData} variant="outline" className="gap-2">
+              <Bell className="h-4 w-4" />
+              {newActivityCount} New Update{newActivityCount > 1 ? 's' : ''}
+            </Button>
+          )}
         </div>
 
         {/* Quick Stats */}

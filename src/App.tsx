@@ -26,6 +26,7 @@ import Grades from "./pages/Grades";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Install from "./pages/Install";
+import ParentDashboard from "./pages/ParentDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,13 @@ const App = () => (
             <Route path="/dashboard/admin" element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } />
+
+            {/* Protected routes - Parent */}
+            <Route path="/dashboard/parent" element={
+              <ProtectedRoute allowedRoles={["parent"]}>
+                <ParentDashboard />
               </ProtectedRoute>
             } />
 

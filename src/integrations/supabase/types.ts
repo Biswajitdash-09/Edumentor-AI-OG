@@ -363,6 +363,59 @@ export type Database = {
           },
         ]
       }
+      course_meetings: {
+        Row: {
+          course_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_recurring: boolean | null
+          meeting_type: string | null
+          meeting_url: string
+          scheduled_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_recurring?: boolean | null
+          meeting_type?: string | null
+          meeting_url: string
+          scheduled_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_recurring?: boolean | null
+          meeting_type?: string | null
+          meeting_url?: string
+          scheduled_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_meetings_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           code: string
@@ -593,6 +646,110 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      parent_messages: {
+        Row: {
+          content: string
+          created_at: string
+          faculty_id: string
+          id: string
+          is_read: boolean | null
+          parent_id: string
+          sender_type: string
+          student_id: string
+          subject: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          faculty_id: string
+          id?: string
+          is_read?: boolean | null
+          parent_id: string
+          sender_type: string
+          student_id: string
+          subject: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          faculty_id?: string
+          id?: string
+          is_read?: boolean | null
+          parent_id?: string
+          sender_type?: string
+          student_id?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      parent_students: {
+        Row: {
+          created_at: string
+          id: string
+          parent_id: string
+          relationship: string | null
+          student_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          parent_id: string
+          relationship?: string | null
+          student_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          parent_id?: string
+          relationship?: string | null
+          student_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      plagiarism_reports: {
+        Row: {
+          ai_analysis: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          similar_submissions: Json | null
+          similarity_score: number
+          status: string | null
+          submission_id: string
+        }
+        Insert: {
+          ai_analysis?: string | null
+          checked_by?: string | null
+          created_at?: string
+          id?: string
+          similar_submissions?: Json | null
+          similarity_score?: number
+          status?: string | null
+          submission_id: string
+        }
+        Update: {
+          ai_analysis?: string | null
+          checked_by?: string | null
+          created_at?: string
+          id?: string
+          similar_submissions?: Json | null
+          similarity_score?: number
+          status?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plagiarism_reports_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -851,7 +1008,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "student" | "faculty" | "admin"
+      app_role: "student" | "faculty" | "admin" | "parent"
       enrollment_status: "active" | "completed" | "dropped"
     }
     CompositeTypes: {
@@ -980,7 +1137,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["student", "faculty", "admin"],
+      app_role: ["student", "faculty", "admin", "parent"],
       enrollment_status: ["active", "completed", "dropped"],
     },
   },

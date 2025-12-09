@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-type AppRole = "student" | "faculty" | "admin";
+type AppRole = "student" | "faculty" | "admin" | "parent";
 
 export const useRole = () => {
   const { user, loading: authLoading } = useAuth();
@@ -51,6 +51,8 @@ export const useRole = () => {
         return "/dashboard/faculty";
       case "student":
         return "/dashboard/student";
+      case "parent":
+        return "/dashboard/parent";
       default:
         return "/auth";
     }
@@ -62,6 +64,7 @@ export const useRole = () => {
     getDashboardPath,
     isAdmin: role === "admin",
     isFaculty: role === "faculty",
-    isStudent: role === "student"
+    isStudent: role === "student",
+    isParent: role === "parent"
   };
 };

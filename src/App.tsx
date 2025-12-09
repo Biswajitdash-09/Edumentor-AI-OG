@@ -25,6 +25,7 @@ import Profile from "./pages/Profile";
 import Grades from "./pages/Grades";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/install" element={<Install />} />
 
             {/* Protected routes - Student */}
             <Route path="/dashboard/student" element={

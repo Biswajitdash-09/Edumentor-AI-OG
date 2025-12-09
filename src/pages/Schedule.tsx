@@ -36,9 +36,9 @@ import {
 import { CreateScheduleDialog } from "@/components/CreateScheduleDialog";
 import { EditScheduleDialog } from "@/components/EditScheduleDialog";
 import { WeeklyCalendar } from "@/components/WeeklyCalendar";
-import { Plus, Calendar, Trash2, Clock, MapPin, Edit, Zap, Download } from "lucide-react";
+import CalendarSync from "@/components/CalendarSync";
+import { Plus, Calendar, Trash2, Clock, MapPin, Edit, Zap } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, isWithinInterval, parseISO } from "date-fns";
-import { downloadCalendar } from "@/lib/calendarExport";
 
 interface Schedule {
   id: string;
@@ -368,14 +368,6 @@ const Schedule = () => {
                   ))}
               </SelectContent>
             </Select>
-            <Button 
-              variant="outline" 
-              onClick={() => downloadCalendar(filteredSchedules, "class-schedule")}
-              disabled={filteredSchedules.length === 0}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Calendar
-            </Button>
             {(isFaculty || canEditSchedule) && (
               <>
                 <Button variant="outline" onClick={handleGenerateSessions} disabled={generatingSessions}>
@@ -491,6 +483,9 @@ const Schedule = () => {
                 )}
               </Card>
             )}
+
+            {/* Calendar Sync Component */}
+            <CalendarSync schedules={filteredSchedules} />
           </>
         )}
       </div>

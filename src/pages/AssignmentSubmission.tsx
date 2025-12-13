@@ -81,7 +81,7 @@ const AssignmentSubmission = () => {
         .from("assignments")
         .select("*, courses(title, code)")
         .eq("id", id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Assignment fetch error:", error);
@@ -91,9 +91,20 @@ const AssignmentSubmission = () => {
           variant: "destructive"
         });
         navigate("/courses");
-      } else {
-        setAssignment(data);
+        return;
       }
+      
+      if (!data) {
+        toast({
+          title: "Access Denied",
+          description: "Assignment not found or you don't have access. Please enroll in the course first.",
+          variant: "destructive"
+        });
+        navigate("/courses");
+        return;
+      }
+      
+      setAssignment(data);
     } catch (err) {
       console.error("Assignment fetch exception:", err);
       toast({
@@ -101,6 +112,7 @@ const AssignmentSubmission = () => {
         description: "An unexpected error occurred",
         variant: "destructive"
       });
+      navigate("/courses");
     } finally {
       setLoading(false);
     }

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Brain, Loader2, Phone, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -35,7 +35,8 @@ const Auth = () => {
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<"student" | "faculty" | "admin" | "parent">("student");
+  // Production: Only student role allowed for self-registration
+  const selectedRole = "student" as const;
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
   const [phone, setPhone] = useState("");
@@ -495,22 +496,8 @@ const Auth = () => {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-role">Register As</Label>
-                    <Select value={selectedRole} onValueChange={(value: "student" | "faculty" | "admin" | "parent") => setSelectedRole(value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="student">Student</SelectItem>
-                        <SelectItem value="faculty">Faculty</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="parent">Parent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                   <p className="text-sm text-muted-foreground">
-                    <strong>Testing Mode:</strong> All roles are available for signup.
+                    You will be registered as a <strong>Student</strong>. Faculty and Admin accounts must be created by an administrator.
                   </p>
                   <Button 
                     type="submit" 
@@ -560,22 +547,8 @@ const Auth = () => {
                           Optional: Add email to receive notifications
                         </p>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Register As</Label>
-                        <Select value={selectedRole} onValueChange={(value: "student" | "faculty" | "admin" | "parent") => setSelectedRole(value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="student">Student</SelectItem>
-                            <SelectItem value="faculty">Faculty</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="parent">Parent</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
                       <p className="text-sm text-muted-foreground">
-                        <strong>Testing Mode:</strong> All roles are available for signup.
+                        You will be registered as a <strong>Student</strong>. Faculty and Admin accounts must be created by an administrator.
                       </p>
                       <Button 
                         type="button"

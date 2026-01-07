@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { Brain, Loader2, Phone, Mail } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Brain, Loader2, Phone, Mail, Fingerprint, ArrowLeft } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
+import { useBiometricAuth } from "@/hooks/useBiometricAuth";
+import { BiometricSetupWizard } from "@/components/BiometricSetupWizard";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SEOHead } from "@/components/SEOHead";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -31,10 +33,16 @@ const phoneSchema = z.object({
 });
 
 const Auth = () => {
+  const [searchParams] = useSearchParams();
+  const biometricMode = searchParams.get('mode') === 'biometric';
+  
   const [isLoading, setIsLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [showBiometricSetup, setShowBiometricSetup] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   // Production: Only student role allowed for self-registration
   const selectedRole = "student" as const;
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
@@ -50,6 +58,71 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loading } = useAuth();
+  const { 
+    isSupported: biometricSupported, 
+    isRegistered: biometricRegistered, 
+    isLoading: biometricLoading,
+    authenticateWithBiometric,
+    shouldShowSetupWizard,
+    getStoredCredential
+  } = useBiometricAuth();
+
+  // Auto-trigger biometric auth if in biometric mode and registered
+  useEffect(() => {
+    if (biometricMode && biometricRegistered && !biometricLoading) {
+      handleBiometricLogin();
+    }
+  }, [biometricMode, biometricRegistered, biometricLoading]);
+
+  const handleBiometricLogin = async () => {
+    setIsLoading(true);
+    const result = await authenticateWithBiometric();
+    
+    if (result.success && result.email) {
+      // Get stored credential to sign in
+      const stored = getStoredCredential();
+      if (stored) {
+        // We need to sign in with stored session or redirect to quick login
+        // Since we can't store passwords, we'll use a magic link approach
+        // For now, show success and let user know they're verified
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", stored.userId)
+          .single();
+        
+        if (roleData) {
+          // Check if there's an active session
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session && session.user.id === stored.userId) {
+            toast({
+              title: "Welcome Back!",
+              description: "Biometric verification successful",
+            });
+            navigate(`/dashboard/${roleData.role}`);
+            return;
+          }
+        }
+        
+        toast({
+          title: "Biometric Verified",
+          description: "Please enter your password to complete sign-in",
+        });
+      }
+    }
+    setIsLoading(false);
+  };
+
+  const handleLoginSuccess = async (userId: string, email: string, role: string) => {
+    // Check if we should show biometric setup wizard
+    if (shouldShowSetupWizard(userId)) {
+      setPendingUserId(userId);
+      setPendingEmail(email);
+      setShowBiometricSetup(true);
+    } else {
+      navigate(`/dashboard/${role}`);
+    }
+  };
 
   const handleForgotPassword = async () => {
     if (!resetEmail) {
@@ -127,7 +200,8 @@ const Auth = () => {
           description: "Welcome back to EduMentor AI!",
         });
         
-        navigate(`/dashboard/${roleData.role}`);
+        // Show biometric setup if first login on this device
+        await handleLoginSuccess(data.user.id, validated.email, roleData.role);
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -216,7 +290,8 @@ const Auth = () => {
           description: `Welcome to EduMentor AI as ${selectedRole}!`,
         });
         
-        navigate(`/dashboard/${selectedRole}`);
+        // Show biometric setup for new users
+        await handleLoginSuccess(data.user.id, validated.email, selectedRole);
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -253,10 +328,61 @@ const Auth = () => {
             <Brain className="w-10 h-10 text-primary" />
             <span className="text-3xl font-bold">EduMentor AI</span>
           </Link>
-          <h1 className="text-2xl font-bold mb-2">Welcome Back</h1>
-          <p className="text-muted-foreground">Sign in to access your academic portal</p>
+          <h1 className="text-2xl font-bold mb-2">
+            {biometricMode ? "Quick Sign In" : "Welcome Back"}
+          </h1>
+          <p className="text-muted-foreground">
+            {biometricMode 
+              ? "Use your fingerprint or face to sign in" 
+              : "Sign in to access your academic portal"}
+          </p>
         </div>
 
+        {/* Biometric Quick Sign-In Mode */}
+        {biometricMode && biometricSupported && (
+          <Card className="p-8 mb-4">
+            <div className="text-center space-y-6">
+              <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <Fingerprint className="w-10 h-10 text-primary" />
+              </div>
+              
+              {biometricRegistered ? (
+                <>
+                  <p className="text-muted-foreground">
+                    Tap the button below to authenticate with your biometrics
+                  </p>
+                  <Button 
+                    size="lg" 
+                    className="w-full gap-2"
+                    onClick={handleBiometricLogin}
+                    disabled={isLoading || biometricLoading}
+                  >
+                    {(isLoading || biometricLoading) ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Fingerprint className="w-5 h-5" />
+                    )}
+                    {(isLoading || biometricLoading) ? "Verifying..." : "Use Biometrics"}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-muted-foreground">
+                  Biometric sign-in is not set up yet. Please sign in with your credentials first, and you'll be prompted to enable it.
+                </p>
+              )}
+              
+              <Link to="/auth" className="block">
+                <Button variant="ghost" className="w-full gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Use Email/Password Instead
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        )}
+
+        {/* Show regular auth form if not in biometric mode or biometric not supported */}
+        {(!biometricMode || !biometricSupported) && (
         <Card className="p-8">
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
@@ -712,6 +838,7 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </Card>
+        )}
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           By continuing, you agree to our{" "}
@@ -720,6 +847,26 @@ const Auth = () => {
           <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
         </p>
       </div>
+
+      {/* Biometric Setup Wizard */}
+      {pendingUserId && pendingEmail && (
+        <BiometricSetupWizard
+          open={showBiometricSetup}
+          onOpenChange={setShowBiometricSetup}
+          userId={pendingUserId}
+          email={pendingEmail}
+          onComplete={() => {
+            // Navigate to dashboard after setup
+            supabase.from("user_roles")
+              .select("role")
+              .eq("user_id", pendingUserId)
+              .single()
+              .then(({ data }) => {
+                navigate(`/dashboard/${data?.role || 'student'}`);
+              });
+          }}
+        />
+      )}
 
       {/* Forgot Password Dialog */}
       <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>

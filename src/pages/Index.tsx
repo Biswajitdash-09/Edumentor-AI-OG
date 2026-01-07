@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Brain, BookOpen, Users, BarChart3, Calendar, Award, MessageSquare, FileCheck, Heart, Mail, Linkedin, Github, Download, Moon, Sun } from "lucide-react";
+import { Brain, BookOpen, Users, BarChart3, Calendar, Award, MessageSquare, FileCheck, Heart, Mail, Linkedin, Github, Download, Moon, Sun, Fingerprint } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import heroImage from "@/assets/hero-image.jpg";
 import DemoVideoDialog from "@/components/DemoVideoDialog";
 import { SEOHead } from "@/components/SEOHead";
@@ -10,6 +11,7 @@ import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 
 const Index = () => {
   const [showDemo, setShowDemo] = useState(false);
+  const { isRegistered: hasBiometricRegistered, isSupported: isBiometricSupported } = useBiometricAuth();
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
       return document.documentElement.classList.contains("dark");
@@ -107,9 +109,18 @@ const Index = () => {
                   Install App
                 </Button>
               </Link>
-              <Link to="/auth">
-                <Button variant="ghost" size="sm" className="text-sm sm:text-base">Login</Button>
-              </Link>
+              {hasBiometricRegistered ? (
+                <Link to="/auth?mode=biometric">
+                  <Button variant="ghost" size="sm" className="text-sm sm:text-base gap-1">
+                    <Fingerprint className="w-4 h-4" />
+                    <span className="hidden sm:inline">Quick Sign In</span>
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm" className="text-sm sm:text-base">Login</Button>
+                </Link>
+              )}
               <Link to="/auth">
                 <Button size="sm" className="text-sm sm:text-base">Get Started</Button>
               </Link>
@@ -136,14 +147,28 @@ const Index = () => {
                     Start Learning
                   </Button>
                 </Link>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8"
-                  onClick={() => setShowDemo(true)}
-                >
-                  Watch Demo
-                </Button>
+                {(hasBiometricRegistered || isBiometricSupported) && (
+                  <Link to="/auth?mode=biometric" className="w-full sm:w-auto">
+                    <Button 
+                      size="lg" 
+                      variant="outline" 
+                      className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 gap-2"
+                    >
+                      <Fingerprint className="w-5 h-5" />
+                      {hasBiometricRegistered ? "Quick Sign In" : "Biometric Sign In"}
+                    </Button>
+                  </Link>
+                )}
+                {!hasBiometricRegistered && !isBiometricSupported && (
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8"
+                    onClick={() => setShowDemo(true)}
+                  >
+                    Watch Demo
+                  </Button>
+                )}
               </div>
             </div>
             <div className="relative hidden sm:block">

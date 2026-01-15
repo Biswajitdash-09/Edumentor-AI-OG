@@ -6,10 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Award, BookOpen, TrendingUp, RefreshCw } from "lucide-react";
+import { Award, BookOpen, TrendingUp, RefreshCw, FileQuestion } from "lucide-react";
 import { format } from "date-fns";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useToast } from "@/hooks/use-toast";
+import { LoadingStats, LoadingCard } from "@/components/ui/loading-card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface GradeEntry {
   assignment_id: string;
@@ -176,8 +178,16 @@ const Grades = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">Loading grades...</p>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Grade Report</h1>
+            <p className="text-muted-foreground">View your academic performance across all courses</p>
+          </div>
+          <LoadingStats count={3} />
+          <div className="space-y-6">
+            <LoadingCard lines={5} />
+            <LoadingCard lines={5} />
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -237,9 +247,17 @@ const Grades = () => {
 
         {/* Course Grades */}
         {courseGrades.length === 0 ? (
-          <Card className="p-12 text-center">
-            <Award className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">No graded assignments yet</p>
+          <Card>
+            <EmptyState
+              icon={<FileQuestion className="w-8 h-8" />}
+              title="No graded assignments yet"
+              description="Your grades will appear here once your instructors have graded your submissions."
+              action={
+                <Button variant="outline" onClick={() => window.location.href = '/courses'}>
+                  View Courses
+                </Button>
+              }
+            />
           </Card>
         ) : (
           <div className="space-y-6">

@@ -962,6 +962,39 @@ export type Database = {
           },
         ]
       }
+      user_consents: {
+        Row: {
+          created_at: string
+          id: string
+          privacy_accepted: boolean
+          privacy_accepted_at: string | null
+          terms_accepted: boolean
+          terms_accepted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          privacy_accepted?: boolean
+          privacy_accepted_at?: string | null
+          terms_accepted?: boolean
+          terms_accepted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          privacy_accepted?: boolean
+          privacy_accepted_at?: string | null
+          terms_accepted?: boolean
+          terms_accepted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

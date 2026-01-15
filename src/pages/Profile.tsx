@@ -14,6 +14,7 @@ import { User, Mail, Shield, Calendar, Save, Loader2, Lock, Bell, Camera, Phone,
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { EmailPreferencesDialog } from "@/components/EmailPreferencesDialog";
+import { DataManagementCard } from "@/components/DataManagementCard";
 import { SEOHead } from "@/components/SEOHead";
 
 interface ProfileData {
@@ -580,6 +581,9 @@ const Profile = () => {
         </Card>
 
         <ChangePasswordCard />
+
+        {/* Data Management - GDPR Compliance */}
+        <DataManagementCard />
       </div>
     </DashboardLayout>
   );

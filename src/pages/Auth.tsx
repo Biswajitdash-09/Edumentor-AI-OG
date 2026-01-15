@@ -13,6 +13,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import { BiometricSetupWizard } from "@/components/BiometricSetupWizard";
+import { ConsentCheckboxes } from "@/components/ConsentCheckboxes";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SEOHead } from "@/components/SEOHead";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -55,6 +56,8 @@ const Auth = () => {
   const [signupOtpSent, setSignupOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [signupOtp, setSignupOtp] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loading } = useAuth();
@@ -259,6 +262,21 @@ const Auth = () => {
 
         if (profileError) {
           console.error("Failed to create profile:", profileError);
+        }
+
+        // Save consent records
+        const { error: consentError } = await supabase
+          .from("user_consents")
+          .insert({
+            user_id: data.user.id,
+            terms_accepted: true,
+            privacy_accepted: true,
+            terms_accepted_at: new Date().toISOString(),
+            privacy_accepted_at: new Date().toISOString(),
+          });
+
+        if (consentError) {
+          console.error("Failed to save consent:", consentError);
         }
 
         // Assign user role - all roles allowed for testing
@@ -622,13 +640,21 @@ const Auth = () => {
                       required
                     />
                   </div>
+                  
+                  <ConsentCheckboxes
+                    termsAccepted={termsAccepted}
+                    privacyAccepted={privacyAccepted}
+                    onTermsChange={setTermsAccepted}
+                    onPrivacyChange={setPrivacyAccepted}
+                  />
+                  
                   <p className="text-sm text-muted-foreground">
                     You will be registered as a <strong>Student</strong>. Faculty and Admin accounts must be created by an administrator.
                   </p>
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading}
+                    disabled={isLoading || !termsAccepted || !privacyAccepted}
                   >
                     {isLoading ? "Creating account..." : `Create ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Account`}
                   </Button>
@@ -673,13 +699,20 @@ const Auth = () => {
                           Optional: Add email to receive notifications
                         </p>
                       </div>
+                      <ConsentCheckboxes
+                        termsAccepted={termsAccepted}
+                        privacyAccepted={privacyAccepted}
+                        onTermsChange={setTermsAccepted}
+                        onPrivacyChange={setPrivacyAccepted}
+                      />
+                      
                       <p className="text-sm text-muted-foreground">
                         You will be registered as a <strong>Student</strong>. Faculty and Admin accounts must be created by an administrator.
                       </p>
                       <Button 
                         type="button"
                         className="w-full" 
-                        disabled={isLoading || !signupName.trim() || !signupPhone.trim()}
+                        disabled={isLoading || !signupName.trim() || !signupPhone.trim() || !termsAccepted || !privacyAccepted}
                         onClick={async () => {
                           try {
                             const validated = phoneSchema.parse({ phone: signupPhone });

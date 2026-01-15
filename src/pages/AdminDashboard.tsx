@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, BookOpen, Building2, TrendingUp, UserPlus, Settings, GraduationCap, ClipboardList, BarChart3, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, BookOpen, Building2, TrendingUp, UserPlus, Settings, GraduationCap, ClipboardList, BarChart3, RefreshCw, History, Search, UserCog } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SEOHead } from "@/components/SEOHead";
+import { Input } from "@/components/ui/input";
+import AuditLogViewer from "@/components/AuditLogViewer";
 
 interface SystemStats {
   totalStudents: number;
@@ -50,6 +53,9 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [roleChangeDialog, setRoleChangeDialog] = useState<{ user: UserInfo; newRole: string } | null>(null);
   const [isChangingRole, setIsChangingRole] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Fetch data when user is available
   useEffect(() => {
@@ -186,6 +192,8 @@ const AdminDashboard = () => {
         return "default";
       case "student":
         return "secondary";
+      case "parent":
+        return "outline";
       default:
         return "outline";
     }
@@ -195,6 +203,15 @@ const AdminDashboard = () => {
     if (newRole === user.role) return;
     setRoleChangeDialog({ user, newRole });
   };
+
+  // Filter users based on search and role filter
+  const filteredUsers = users.filter((userInfo) => {
+    const matchesSearch = !userSearchTerm || 
+      userInfo.full_name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+      userInfo.email.toLowerCase().includes(userSearchTerm.toLowerCase());
+    const matchesRole = roleFilter === "all" || userInfo.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
 
   const confirmRoleChange = async () => {
     if (!roleChangeDialog) return;
@@ -265,132 +282,238 @@ const AdminDashboard = () => {
           })}
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Button className="h-24 flex-col gap-2" onClick={() => navigate("/courses")}>
-            <BookOpen className="w-6 h-6" />
-            Manage Courses
-          </Button>
-          <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/attendance")}>
-            <ClipboardList className="w-6 h-6" />
-            Attendance
-          </Button>
-          <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/analytics")}>
-            <BarChart3 className="w-6 h-6" />
-            Analytics
-          </Button>
-          <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/announcements")}>
-            <Building2 className="w-6 h-6" />
-            Announcements
-          </Button>
-        </div>
+        {/* Tabs for different sections */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="audit">Audit Logs</TabsTrigger>
+          </TabsList>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* User Management */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
-                User Management
-              </h2>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Button className="h-24 flex-col gap-2" onClick={() => navigate("/courses")}>
+                <BookOpen className="w-6 h-6" />
+                Manage Courses
+              </Button>
+              <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/attendance")}>
+                <ClipboardList className="w-6 h-6" />
+                Attendance
+              </Button>
+              <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/analytics")}>
+                <BarChart3 className="w-6 h-6" />
+                Analytics
+              </Button>
+              <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/announcements")}>
+                <Building2 className="w-6 h-6" />
+                Announcements
+              </Button>
             </div>
-            <div className="overflow-auto max-h-[400px]">
-              {loading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
+
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Recent Users */}
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    Recent Users
+                  </h2>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveTab("users")}>
+                    View All
+                  </Button>
                 </div>
-              ) : users.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((userInfo) => (
-                      <TableRow key={userInfo.id}>
-                        <TableCell className="font-medium">{userInfo.full_name}</TableCell>
-                        <TableCell className="text-muted-foreground">{userInfo.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={getRoleBadgeVariant(userInfo.role)}>
-                            {userInfo.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={userInfo.role}
-                            onValueChange={(value) => handleRoleChange(userInfo, value)}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="student">Student</SelectItem>
-                              <SelectItem value="faculty">Faculty</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No users found</p>
-              )}
-            </div>
-          </Card>
-
-          {/* Recent Activities */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                Recent Activities
-              </h2>
-            </div>
-            <div className="space-y-4">
-              {loading ? (
-                <>
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                </>
-              ) : recentActivities.length > 0 ? (
-                recentActivities.map((activity, index) => (
-                  <div key={index} className="pb-4 border-b border-border last:border-0">
-                    <h3 className="font-medium">{activity.action}</h3>
-                    <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                      <span>{activity.user}</span>
-                      <span>{activity.time}</span>
+                <div className="overflow-auto max-h-[300px]">
+                  {loading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
                     </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No recent activities</p>
-              )}
-            </div>
-          </Card>
-        </div>
+                  ) : users.slice(0, 5).length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Role</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.slice(0, 5).map((userInfo) => (
+                          <TableRow key={userInfo.id}>
+                            <TableCell className="font-medium">{userInfo.full_name}</TableCell>
+                            <TableCell>
+                              <Badge variant={getRoleBadgeVariant(userInfo.role)}>
+                                {userInfo.role}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No users found</p>
+                  )}
+                </div>
+              </Card>
 
-        {/* System Health */}
-        <Card className="p-8 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">System Overview</h2>
-              <p className="text-muted-foreground">View detailed analytics and reports for your institution.</p>
+              {/* Recent Activities */}
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    Recent Activities
+                  </h2>
+                </div>
+                <div className="space-y-4">
+                  {loading ? (
+                    <>
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-16 w-full" />
+                    </>
+                  ) : recentActivities.length > 0 ? (
+                    recentActivities.map((activity, index) => (
+                      <div key={index} className="pb-4 border-b border-border last:border-0">
+                        <h3 className="font-medium">{activity.action}</h3>
+                        <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                          <span>{activity.user}</span>
+                          <span>{activity.time}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No recent activities</p>
+                  )}
+                </div>
+              </Card>
             </div>
-            <Button size="lg" onClick={() => navigate("/analytics")}>
-              <BarChart3 className="w-5 h-5 mr-2" />
-              View Analytics
-            </Button>
-          </div>
-        </Card>
+
+            {/* System Health */}
+            <Card className="p-8 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">System Overview</h2>
+                  <p className="text-muted-foreground">View detailed analytics and reports for your institution.</p>
+                </div>
+                <Button size="lg" onClick={() => navigate("/analytics")}>
+                  <BarChart3 className="w-5 h-5 mr-2" />
+                  View Analytics
+                </Button>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* User Management Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <UserCog className="w-5 h-5 text-primary" />
+                  User Role Management
+                </h2>
+                <Button variant="outline" size="sm" onClick={fetchDashboardData} disabled={loading}>
+                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
+
+              {/* Search and Filter */}
+              <div className="flex gap-4 mb-6">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or email..."
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Filter by role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="student">Students</SelectItem>
+                    <SelectItem value="faculty">Faculty</SelectItem>
+                    <SelectItem value="admin">Admins</SelectItem>
+                    <SelectItem value="parent">Parents</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="rounded-md border">
+                <div className="overflow-auto max-h-[600px]">
+                  {loading ? (
+                    <div className="p-4 space-y-3">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : filteredUsers.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Current Role</TableHead>
+                          <TableHead>Change Role</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map((userInfo) => (
+                          <TableRow key={userInfo.id}>
+                            <TableCell className="font-medium">{userInfo.full_name}</TableCell>
+                            <TableCell className="text-muted-foreground">{userInfo.email}</TableCell>
+                            <TableCell>
+                              <Badge variant={getRoleBadgeVariant(userInfo.role)}>
+                                {userInfo.role}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={userInfo.role}
+                                onValueChange={(value) => handleRoleChange(userInfo, value)}
+                              >
+                                <SelectTrigger className="w-36">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="student">Student</SelectItem>
+                                  <SelectItem value="faculty">Faculty</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                  <SelectItem value="parent">Parent</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No users found matching your criteria</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground mt-4">
+                Showing {filteredUsers.length} of {users.length} users. Role changes are logged in the Audit Logs tab.
+              </p>
+            </Card>
+          </TabsContent>
+
+          {/* Audit Logs Tab */}
+          <TabsContent value="audit">
+            <AuditLogViewer />
+          </TabsContent>
+        </Tabs>
 
         {/* Role Change Confirmation Dialog */}
         <Dialog open={!!roleChangeDialog} onOpenChange={() => setRoleChangeDialog(null)}>

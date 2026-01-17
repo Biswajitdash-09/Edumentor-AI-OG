@@ -320,13 +320,13 @@ const StudentDashboard = () => {
         </div>
 
         {/* AI Mentor Quick Access */}
-        <Card className="p-8 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
-          <div className="flex items-center justify-between">
+        <Card className="p-6 md:p-8 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
+          <div className="flex flex-col lg:flex-row items-center gap-4 lg:justify-between text-center lg:text-left">
             <div>
-              <h2 className="text-2xl font-bold mb-2">Need Help with Your Studies?</h2>
-              <p className="text-muted-foreground">Ask our AI Mentor anything - from concepts to exam preparation</p>
+              <h2 className="text-xl md:text-2xl font-bold mb-2">Need Help with Your Studies?</h2>
+              <p className="text-sm md:text-base text-muted-foreground">Ask our AI Mentor anything - from concepts to exam preparation</p>
             </div>
-            <Button size="lg" onClick={() => navigate("/ai-mentor")}>
+            <Button size="lg" onClick={() => navigate("/ai-mentor")} className="w-full lg:w-auto">
               <MessageSquare className="w-5 h-5 mr-2" />
               Chat with AI Mentor
             </Button>

@@ -467,30 +467,32 @@ const CourseDetails = () => {
         </Card>
 
         <Tabs defaultValue="assignments" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="assignments">
-              <ClipboardList className="w-4 h-4 mr-2" />
-              Assignments
-            </TabsTrigger>
-            <TabsTrigger value="materials">
-              <FileText className="w-4 h-4 mr-2" />
-              Materials
-            </TabsTrigger>
-            {userRole === "faculty" && course.faculty_id === user?.id && (
-              <TabsTrigger value="students">
-                <Users className="w-4 h-4 mr-2" />
-                Students
+          <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="inline-flex min-w-max">
+              <TabsTrigger value="assignments" className="text-xs sm:text-sm">
+                <ClipboardList className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Assignments</span>
               </TabsTrigger>
-            )}
-            <TabsTrigger value="discussions">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Discussions
-            </TabsTrigger>
-            <TabsTrigger value="meetings">
-              <Video className="w-4 h-4 mr-2" />
-              Meetings
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger value="materials" className="text-xs sm:text-sm">
+                <FileText className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Materials</span>
+              </TabsTrigger>
+              {userRole === "faculty" && course.faculty_id === user?.id && (
+                <TabsTrigger value="students" className="text-xs sm:text-sm">
+                  <Users className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Students</span>
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="discussions" className="text-xs sm:text-sm">
+                <MessageSquare className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Discussions</span>
+              </TabsTrigger>
+              <TabsTrigger value="meetings" className="text-xs sm:text-sm">
+                <Video className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Meetings</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="assignments" className="space-y-4">
             {userRole === "faculty" && course.faculty_id === user?.id && (

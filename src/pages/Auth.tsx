@@ -44,8 +44,9 @@ const Auth = () => {
   const [showBiometricSetup, setShowBiometricSetup] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
-  // Production: Only student role allowed for self-registration
-  const selectedRole = "student" as const;
+  const [pendingRole, setPendingRole] = useState<string>("student");
+  // Demo mode: Allow all roles for testing
+  const [selectedRole, setSelectedRole] = useState<"student" | "faculty" | "admin" | "parent">("student");
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
   const [phone, setPhone] = useState("");
@@ -118,9 +119,12 @@ const Auth = () => {
 
   const handleLoginSuccess = async (userId: string, email: string, role: string) => {
     // Check if we should show biometric setup wizard
-    if (shouldShowSetupWizard(userId)) {
+    // Skip biometric in iframe environments (preview mode)
+    const isInIframe = window.self !== window.top;
+    if (!isInIframe && shouldShowSetupWizard(userId)) {
       setPendingUserId(userId);
       setPendingEmail(email);
+      setPendingRole(role);
       setShowBiometricSetup(true);
     } else {
       navigate(`/dashboard/${role}`);
@@ -641,6 +645,25 @@ const Auth = () => {
                     />
                   </div>
                   
+                  {/* Role selector for demo */}
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Account Type</Label>
+                    <select
+                      id="role"
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value as typeof selectedRole)}
+                    >
+                      <option value="student">Student</option>
+                      <option value="faculty">Faculty / Teacher</option>
+                      <option value="admin">Administrator</option>
+                      <option value="parent">Parent</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      Demo mode: All account types available for testing
+                    </p>
+                  </div>
+                  
                   <ConsentCheckboxes
                     termsAccepted={termsAccepted}
                     privacyAccepted={privacyAccepted}
@@ -648,9 +671,6 @@ const Auth = () => {
                     onPrivacyChange={setPrivacyAccepted}
                   />
                   
-                  <p className="text-sm text-muted-foreground">
-                    You will be registered as a <strong>Student</strong>. Faculty and Admin accounts must be created by an administrator.
-                  </p>
                   <Button 
                     type="submit" 
                     className="w-full" 
@@ -699,16 +719,32 @@ const Auth = () => {
                           Optional: Add email to receive notifications
                         </p>
                       </div>
+                      
+                      {/* Role selector for demo - phone signup */}
+                      <div className="space-y-2">
+                        <Label htmlFor="phone-role">Account Type</Label>
+                        <select
+                          id="phone-role"
+                          className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                          value={selectedRole}
+                          onChange={(e) => setSelectedRole(e.target.value as typeof selectedRole)}
+                        >
+                          <option value="student">Student</option>
+                          <option value="faculty">Faculty / Teacher</option>
+                          <option value="admin">Administrator</option>
+                          <option value="parent">Parent</option>
+                        </select>
+                        <p className="text-xs text-muted-foreground">
+                          Demo mode: All account types available for testing
+                        </p>
+                      </div>
+                      
                       <ConsentCheckboxes
                         termsAccepted={termsAccepted}
                         privacyAccepted={privacyAccepted}
                         onTermsChange={setTermsAccepted}
                         onPrivacyChange={setPrivacyAccepted}
                       />
-                      
-                      <p className="text-sm text-muted-foreground">
-                        You will be registered as a <strong>Student</strong>. Faculty and Admin accounts must be created by an administrator.
-                      </p>
                       <Button 
                         type="button"
                         className="w-full" 
@@ -885,18 +921,17 @@ const Auth = () => {
       {pendingUserId && pendingEmail && (
         <BiometricSetupWizard
           open={showBiometricSetup}
-          onOpenChange={setShowBiometricSetup}
+          onOpenChange={(open) => {
+            setShowBiometricSetup(open);
+            // If closing without completing, still navigate
+            if (!open) {
+              navigate(`/dashboard/${pendingRole}`);
+            }
+          }}
           userId={pendingUserId}
           email={pendingEmail}
           onComplete={() => {
-            // Navigate to dashboard after setup
-            supabase.from("user_roles")
-              .select("role")
-              .eq("user_id", pendingUserId)
-              .single()
-              .then(({ data }) => {
-                navigate(`/dashboard/${data?.role || 'student'}`);
-              });
+            navigate(`/dashboard/${pendingRole}`);
           }}
         />
       )}

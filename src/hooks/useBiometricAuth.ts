@@ -12,15 +12,30 @@ interface BiometricCredential {
 const BIOMETRIC_STORAGE_KEY = 'eduMentor_biometric_credentials';
 const BIOMETRIC_SETUP_SHOWN_KEY = 'eduMentor_biometric_setup_shown';
 
+// Check if running in an iframe
+const isInIframe = (): boolean => {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true; // If we can't access window.top, we're in a cross-origin iframe
+  }
+};
+
 export const useBiometricAuth = () => {
   const [isSupported, setIsSupported] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Check if WebAuthn is supported
+  // Check if WebAuthn is supported (disabled in iframes due to security restrictions)
   useEffect(() => {
     const checkSupport = async () => {
+      // WebAuthn is blocked in cross-origin iframes for security
+      if (isInIframe()) {
+        setIsSupported(false);
+        return;
+      }
+      
       if (window.PublicKeyCredential) {
         try {
           const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();

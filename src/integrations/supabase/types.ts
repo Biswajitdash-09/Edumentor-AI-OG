@@ -891,6 +891,33 @@ export type Database = {
           },
         ]
       }
+      student_cgpa: {
+        Row: {
+          cgpa: number | null
+          created_at: string | null
+          id: string
+          semester: number
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          cgpa?: number | null
+          created_at?: string | null
+          id?: string
+          semester: number
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          cgpa?: number | null
+          created_at?: string | null
+          id?: string
+          semester?: number
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       student_notes: {
         Row: {
           course_id: string

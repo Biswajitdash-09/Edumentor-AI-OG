@@ -64,8 +64,12 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
       { to: "/attendance", icon: QrCode, label: "Attendance" },
       { to: "/announcements", icon: Megaphone, label: "Announcements" },
       { to: "/schedule", icon: Calendar, label: "Schedule" },
-      { to: "/analytics", icon: BarChart3, label: "Analytics" },
     ];
+    // Only show Analytics for faculty and admin
+    if (userRole === "faculty" || userRole === "admin") {
+      links.push({ to: "/analytics", icon: BarChart3, label: "Analytics" });
+    }
+    // Only show Grades for students
     if (userRole === "student") {
       links.push({ to: "/grades", icon: Award, label: "Grades" });
     }

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreateAnnouncementDialog } from "@/components/CreateAnnouncementDialog";
 import { EditAnnouncementDialog } from "@/components/EditAnnouncementDialog";
+import { PaginationControls } from "@/components/PaginationControls";
 import { Plus, Megaphone, Pin, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -28,6 +29,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+const ANNOUNCEMENTS_PER_PAGE = 10;
 
 interface EditAnnouncement {
   id: string;
@@ -65,6 +68,14 @@ const Announcements = () => {
   const [editAnnouncement, setEditAnnouncement] = useState<EditAnnouncement | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Pagination
+  const totalPages = Math.ceil(announcements.length / ANNOUNCEMENTS_PER_PAGE);
+  const paginatedAnnouncements = announcements.slice(
+    (currentPage - 1) * ANNOUNCEMENTS_PER_PAGE,
+    currentPage * ANNOUNCEMENTS_PER_PAGE
+  );
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -228,7 +239,7 @@ const Announcements = () => {
           </Card>
         ) : (
           <div className="space-y-4">
-            {announcements.map((announcement) => (
+            {paginatedAnnouncements.map((announcement) => (
               <Card key={announcement.id} className={announcement.is_pinned ? "border-primary" : ""}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
@@ -251,7 +262,7 @@ const Announcements = () => {
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="bg-popover border shadow-lg">
                             <DropdownMenuItem
                               onClick={() => setEditAnnouncement({
                                 id: announcement.id,
@@ -293,6 +304,16 @@ const Announcements = () => {
                 </CardContent>
               </Card>
             ))}
+
+            {announcements.length > ANNOUNCEMENTS_PER_PAGE && (
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={announcements.length}
+                itemsPerPage={ANNOUNCEMENTS_PER_PAGE}
+              />
+            )}
           </div>
         )}
       </div>

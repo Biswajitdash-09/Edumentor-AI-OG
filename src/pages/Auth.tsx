@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { Brain, Loader2, Phone, Mail, Fingerprint, ArrowLeft } from "lucide-react";
+import { Brain, Loader2, Phone, Mail, Fingerprint, ArrowLeft, GraduationCap, BookOpen, Shield, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -647,18 +648,38 @@ const Auth = () => {
                   
                   {/* Role selector for demo */}
                   <div className="space-y-2">
-                    <Label htmlFor="role">Account Type</Label>
-                    <select
-                      id="role"
-                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                      value={selectedRole}
-                      onChange={(e) => setSelectedRole(e.target.value as typeof selectedRole)}
-                    >
-                      <option value="student">Student</option>
-                      <option value="faculty">Faculty / Teacher</option>
-                      <option value="admin">Administrator</option>
-                      <option value="parent">Parent</option>
-                    </select>
+                    <Label>Account Type</Label>
+                    <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as typeof selectedRole)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select account type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border border-border shadow-lg z-50">
+                        <SelectItem value="student">
+                          <span className="flex items-center gap-2">
+                            <GraduationCap className="h-4 w-4 text-primary" />
+                            Student
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="faculty">
+                          <span className="flex items-center gap-2">
+                            <BookOpen className="h-4 w-4 text-primary" />
+                            Faculty / Teacher
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="admin">
+                          <span className="flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-primary" />
+                            Administrator
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="parent">
+                          <span className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-primary" />
+                            Parent
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                     <p className="text-xs text-muted-foreground">
                       Demo mode: All account types available for testing
                     </p>
@@ -722,18 +743,38 @@ const Auth = () => {
                       
                       {/* Role selector for demo - phone signup */}
                       <div className="space-y-2">
-                        <Label htmlFor="phone-role">Account Type</Label>
-                        <select
-                          id="phone-role"
-                          className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                          value={selectedRole}
-                          onChange={(e) => setSelectedRole(e.target.value as typeof selectedRole)}
-                        >
-                          <option value="student">Student</option>
-                          <option value="faculty">Faculty / Teacher</option>
-                          <option value="admin">Administrator</option>
-                          <option value="parent">Parent</option>
-                        </select>
+                        <Label>Account Type</Label>
+                        <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as typeof selectedRole)}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select account type" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border border-border shadow-lg z-50">
+                            <SelectItem value="student">
+                              <span className="flex items-center gap-2">
+                                <GraduationCap className="h-4 w-4 text-primary" />
+                                Student
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="faculty">
+                              <span className="flex items-center gap-2">
+                                <BookOpen className="h-4 w-4 text-primary" />
+                                Faculty / Teacher
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="admin">
+                              <span className="flex items-center gap-2">
+                                <Shield className="h-4 w-4 text-primary" />
+                                Administrator
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="parent">
+                              <span className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-primary" />
+                                Parent
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                         <p className="text-xs text-muted-foreground">
                           Demo mode: All account types available for testing
                         </p>

@@ -15,6 +15,9 @@ import { useCourses, useEnrollMutation, useEnrollments } from "@/hooks/useQueryH
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditCourseDialog } from "@/components/EditCourseDialog";
 import { DeleteCourseDialog } from "@/components/DeleteCourseDialog";
+import { PaginationControls } from "@/components/PaginationControls";
+
+const COURSES_PER_PAGE = 9;
 
 interface Course {
   id: string;
@@ -35,6 +38,7 @@ const Courses = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editCourse, setEditCourse] = useState<Course | null>(null);
   const [deleteCourse, setDeleteCourse] = useState<{ id: string; title: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [newCourse, setNewCourse] = useState({
     code: "",
     title: "",
@@ -52,6 +56,13 @@ const Courses = () => {
   const enrollMutation = useEnrollMutation();
 
   const enrolledCourseIds = enrollments.map(e => e.course_id);
+
+  // Pagination
+  const totalPages = Math.ceil(courses.length / COURSES_PER_PAGE);
+  const paginatedCourses = courses.slice(
+    (currentPage - 1) * COURSES_PER_PAGE,
+    currentPage * COURSES_PER_PAGE
+  );
 
   useEffect(() => {
     if (user) {
@@ -213,7 +224,7 @@ const Courses = () => {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
+          {paginatedCourses.map((course) => (
             <Card key={course.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -291,6 +302,16 @@ const Courses = () => {
             </Card>
           ))}
         </div>
+
+        {courses.length > COURSES_PER_PAGE && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={courses.length}
+            itemsPerPage={COURSES_PER_PAGE}
+          />
+        )}
 
         {editCourse && (
           <EditCourseDialog

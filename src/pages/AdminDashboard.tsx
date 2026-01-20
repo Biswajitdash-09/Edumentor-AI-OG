@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, BookOpen, Building2, TrendingUp, UserPlus, Settings, GraduationCap, ClipboardList, BarChart3, RefreshCw, History, Search, UserCog } from "lucide-react";
+import { Users, BookOpen, Building2, TrendingUp, UserPlus, Settings, GraduationCap, ClipboardList, BarChart3, RefreshCw, History, Search, UserCog, Edit, UserX, UserCheck } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,9 +13,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { SEOHead } from "@/components/SEOHead";
 import { Input } from "@/components/ui/input";
 import AuditLogViewer from "@/components/AuditLogViewer";
+import { UserEditDialog } from "@/components/UserEditDialog";
+import { PaginationControls } from "@/components/PaginationControls";
 
 interface SystemStats {
   totalStudents: number;
@@ -37,7 +40,12 @@ interface UserInfo {
   email: string;
   role: string;
   created_at: string;
+  department?: string;
+  phone?: string;
+  is_active?: boolean;
 }
+
+const USERS_PER_PAGE = 10;
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -51,11 +59,15 @@ const AdminDashboard = () => {
   });
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [users, setUsers] = useState<UserInfo[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [roleChangeDialog, setRoleChangeDialog] = useState<{ user: UserInfo; newRole: string } | null>(null);
   const [isChangingRole, setIsChangingRole] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("overview");
+  const [editUser, setEditUser] = useState<UserInfo | null>(null);
+  const [deactivateUser, setDeactivateUser] = useState<UserInfo | null>(null);
 
   // Fetch data when user is available
   useEffect(() => {
@@ -91,18 +103,19 @@ const AdminDashboard = () => {
         .select("*", { count: "exact", head: true })
         .eq("status", "active");
 
-      // Fetch all users with their roles
-      const { data: rolesData } = await supabase
+      // Fetch all users with their roles - with pagination info
+      const { data: rolesData, count: rolesCount } = await supabase
         .from("user_roles")
-        .select("user_id, role, created_at")
-        .order("created_at", { ascending: false })
-        .limit(20);
+        .select("user_id, role, created_at", { count: "exact" })
+        .order("created_at", { ascending: false });
+
+      setTotalUsers(rolesCount || 0);
 
       if (rolesData && rolesData.length > 0) {
         const userIds = rolesData.map((r) => r.user_id);
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("user_id, full_name, email, id")
+          .select("user_id, full_name, email, id, department, phone")
           .in("user_id", userIds);
 
         const usersWithRoles = rolesData.map((roleInfo) => {
@@ -114,6 +127,9 @@ const AdminDashboard = () => {
             email: profile?.email || "N/A",
             role: roleInfo.role,
             created_at: roleInfo.created_at,
+            department: profile?.department || "",
+            phone: profile?.phone || "",
+            is_active: true,
           };
         });
 
@@ -212,6 +228,18 @@ const AdminDashboard = () => {
     const matchesRole = roleFilter === "all" || userInfo.role === roleFilter;
     return matchesSearch && matchesRole;
   });
+
+  // Paginate filtered users
+  const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * USERS_PER_PAGE,
+    currentPage * USERS_PER_PAGE
+  );
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [userSearchTerm, roleFilter]);
 
   const confirmRoleChange = async () => {
     if (!roleChangeDialog) return;
@@ -454,21 +482,27 @@ const AdminDashboard = () => {
                       <Skeleton className="h-12 w-full" />
                       <Skeleton className="h-12 w-full" />
                     </div>
-                  ) : filteredUsers.length > 0 ? (
+                  ) : paginatedUsers.length > 0 ? (
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Current Role</TableHead>
+                          <TableHead className="hidden md:table-cell">Email</TableHead>
+                          <TableHead>Role</TableHead>
                           <TableHead>Change Role</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredUsers.map((userInfo) => (
+                        {paginatedUsers.map((userInfo) => (
                           <TableRow key={userInfo.id}>
-                            <TableCell className="font-medium">{userInfo.full_name}</TableCell>
-                            <TableCell className="text-muted-foreground">{userInfo.email}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{userInfo.full_name}</p>
+                                <p className="text-xs text-muted-foreground md:hidden">{userInfo.email}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell text-muted-foreground">{userInfo.email}</TableCell>
                             <TableCell>
                               <Badge variant={getRoleBadgeVariant(userInfo.role)}>
                                 {userInfo.role}
@@ -479,7 +513,7 @@ const AdminDashboard = () => {
                                 value={userInfo.role}
                                 onValueChange={(value) => handleRoleChange(userInfo, value)}
                               >
-                                <SelectTrigger className="w-36">
+                                <SelectTrigger className="w-28 sm:w-36">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -489,6 +523,27 @@ const AdminDashboard = () => {
                                   <SelectItem value="parent">Parent</SelectItem>
                                 </SelectContent>
                               </Select>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setEditUser(userInfo)}
+                                  title="Edit user"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeactivateUser(userInfo)}
+                                  title="Deactivate user"
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <UserX className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -503,9 +558,13 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground mt-4">
-                Showing {filteredUsers.length} of {users.length} users. Role changes are logged in the Audit Logs tab.
-              </p>
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={filteredUsers.length}
+                itemsPerPage={USERS_PER_PAGE}
+              />
             </Card>
           </TabsContent>
 
@@ -549,6 +608,62 @@ const AdminDashboard = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* User Edit Dialog */}
+        <UserEditDialog
+          user={editUser}
+          open={!!editUser}
+          onOpenChange={(open) => !open && setEditUser(null)}
+          onSuccess={fetchDashboardData}
+        />
+
+        {/* Deactivate User Confirmation */}
+        <AlertDialog open={!!deactivateUser} onOpenChange={() => setDeactivateUser(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Deactivate User?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to deactivate {deactivateUser?.full_name}'s account? 
+                They will no longer be able to access the system. This action can be reversed by an administrator.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  if (!deactivateUser) return;
+                  try {
+                    // Delete the user's role (effectively deactivating them)
+                    const { error } = await supabase
+                      .from("user_roles")
+                      .delete()
+                      .eq("user_id", deactivateUser.user_id);
+
+                    if (error) throw error;
+
+                    toast({
+                      title: "User Deactivated",
+                      description: `${deactivateUser.full_name}'s account has been deactivated.`,
+                    });
+
+                    fetchDashboardData();
+                  } catch (error: any) {
+                    toast({
+                      title: "Error",
+                      description: error.message || "Failed to deactivate user",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setDeactivateUser(null);
+                  }
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Deactivate
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

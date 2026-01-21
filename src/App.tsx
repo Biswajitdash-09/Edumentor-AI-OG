@@ -27,6 +27,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Install from "./pages/Install";
 import ParentDashboard from "./pages/ParentDashboard";
+import StudentAnalytics from "./pages/StudentAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -138,6 +139,11 @@ const App = () => (
             <Route path="/grades" element={
               <ProtectedRoute>
                 <Grades />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-analytics" element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <StudentAnalytics />
               </ProtectedRoute>
             } />
 

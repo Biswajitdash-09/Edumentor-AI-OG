@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { Brain, Loader2, Phone, Mail, Fingerprint, ArrowLeft, GraduationCap, BookOpen, Shield, Users } from "lucide-react";
+import { Brain, Loader2, Phone, Mail, Fingerprint, ArrowLeft, GraduationCap, BookOpen, Shield, Users, ScanFace, Scan } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,7 @@ import { ConsentCheckboxes } from "@/components/ConsentCheckboxes";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SEOHead } from "@/components/SEOHead";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { getBiometricInfo, getBiometricActionText, detectPlatform } from "@/lib/platformDetection";
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -71,6 +72,25 @@ const Auth = () => {
     shouldShowSetupWizard,
     getStoredCredential
   } = useBiometricAuth();
+  
+  // Platform-specific biometric info
+  const biometricInfo = useMemo(() => getBiometricInfo(), []);
+  const biometricActionText = useMemo(() => getBiometricActionText(), []);
+  
+  // Get the appropriate icon based on platform
+  const BiometricIcon = useMemo(() => {
+    switch (biometricInfo.icon) {
+      case 'face-id':
+        return ScanFace;
+      case 'touch-id':
+      case 'fingerprint':
+        return Fingerprint;
+      case 'windows-hello':
+        return Scan;
+      default:
+        return Fingerprint;
+    }
+  }, [biometricInfo.icon]);
 
   // Auto-trigger biometric auth if in biometric mode and registered
   useEffect(() => {
@@ -356,7 +376,7 @@ const Auth = () => {
           </h1>
           <p className="text-muted-foreground">
             {biometricMode 
-              ? "Use your fingerprint or face to sign in" 
+              ? biometricInfo.description
               : "Sign in to access your academic portal"}
           </p>
         </div>
@@ -366,13 +386,13 @@ const Auth = () => {
           <Card className="p-8 mb-4">
             <div className="text-center space-y-6">
               <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                <Fingerprint className="w-10 h-10 text-primary" />
+                <BiometricIcon className="w-10 h-10 text-primary" />
               </div>
               
               {biometricRegistered ? (
                 <>
                   <p className="text-muted-foreground">
-                    Tap the button below to authenticate with your biometrics
+                    Tap the button below to authenticate with {biometricInfo.name}
                   </p>
                   <Button 
                     size="lg" 
@@ -383,14 +403,14 @@ const Auth = () => {
                     {(isLoading || biometricLoading) ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
-                      <Fingerprint className="w-5 h-5" />
+                      <BiometricIcon className="w-5 h-5" />
                     )}
-                    {(isLoading || biometricLoading) ? "Verifying..." : "Use Biometrics"}
+                    {(isLoading || biometricLoading) ? "Verifying..." : biometricActionText}
                   </Button>
                 </>
               ) : (
                 <p className="text-muted-foreground">
-                  Biometric sign-in is not set up yet. Please sign in with your credentials first, and you'll be prompted to enable it.
+                  {biometricInfo.name} sign-in is not set up yet. Please sign in with your credentials first, and you'll be prompted to enable it.
                 </p>
               )}
               

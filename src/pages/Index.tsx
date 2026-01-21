@@ -7,7 +7,6 @@ import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import heroImage from "@/assets/hero-image.jpg";
 import DemoVideoDialog from "@/components/DemoVideoDialog";
 import { SEOHead } from "@/components/SEOHead";
-import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 
 const Index = () => {
   const [showDemo, setShowDemo] = useState(false);
@@ -85,7 +84,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead />
-      <PWAUpdatePrompt />
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b border-border z-50">
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">

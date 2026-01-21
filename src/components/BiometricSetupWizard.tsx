@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Fingerprint, Shield, Zap, X } from "lucide-react";
+import { Fingerprint, Shield, Zap, Scan, ScanFace } from "lucide-react";
 import { useBiometricAuth } from "@/hooks/useBiometricAuth";
+import { getBiometricInfo, getSetupInstructions, detectPlatform } from "@/lib/platformDetection";
 
 interface BiometricSetupWizardProps {
   open: boolean;
@@ -21,6 +22,25 @@ export const BiometricSetupWizard = ({
 }: BiometricSetupWizardProps) => {
   const [step, setStep] = useState<"intro" | "setup" | "success">("intro");
   const { registerBiometric, isLoading, markSetupWizardShown } = useBiometricAuth();
+  
+  const biometricInfo = useMemo(() => getBiometricInfo(), []);
+  const platform = useMemo(() => detectPlatform(), []);
+  const setupInstructions = useMemo(() => getSetupInstructions(), []);
+  
+  // Get the appropriate icon based on platform
+  const BiometricIcon = useMemo(() => {
+    switch (biometricInfo.icon) {
+      case 'face-id':
+        return ScanFace;
+      case 'touch-id':
+      case 'fingerprint':
+        return Fingerprint;
+      case 'windows-hello':
+        return Scan;
+      default:
+        return Fingerprint;
+    }
+  }, [biometricInfo.icon]);
 
   const handleSetup = async () => {
     setStep("setup");
@@ -50,14 +70,14 @@ export const BiometricSetupWizard = ({
           <>
             <DialogHeader>
               <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <Fingerprint className="w-8 h-8 text-primary" />
+                <BiometricIcon className="w-8 h-8 text-primary" />
               </div>
               <DialogTitle className="text-center text-xl">
-                Enable Quick Sign-In
+                Enable {biometricInfo.name}
               </DialogTitle>
               <DialogDescription className="text-center space-y-4 pt-2">
                 <p>
-                  Use your fingerprint or face to sign in instantly next time.
+                  {biometricInfo.description} next time.
                 </p>
                 <div className="grid gap-3 text-left mt-4">
                   <div className="flex items-start gap-3">
@@ -83,8 +103,8 @@ export const BiometricSetupWizard = ({
             </DialogHeader>
             <DialogFooter className="flex flex-col gap-2 sm:flex-col">
               <Button onClick={handleSetup} className="w-full" disabled={isLoading}>
-                <Fingerprint className="w-4 h-4 mr-2" />
-                Set Up Now
+                <BiometricIcon className="w-4 h-4 mr-2" />
+                Set Up {biometricInfo.name}
               </Button>
               <Button variant="ghost" onClick={handleSkip} className="w-full">
                 Maybe Later
@@ -96,11 +116,11 @@ export const BiometricSetupWizard = ({
         {step === "setup" && (
           <div className="py-8 text-center">
             <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 animate-pulse">
-              <Fingerprint className="w-8 h-8 text-primary" />
+              <BiometricIcon className="w-8 h-8 text-primary" />
             </div>
-            <DialogTitle className="mb-2">Waiting for Biometric...</DialogTitle>
+            <DialogTitle className="mb-2">Waiting for {biometricInfo.name}...</DialogTitle>
             <DialogDescription>
-              Follow your device's prompt to register your fingerprint or face
+              {setupInstructions}
             </DialogDescription>
           </div>
         )}
@@ -109,13 +129,13 @@ export const BiometricSetupWizard = ({
           <>
             <DialogHeader>
               <div className="mx-auto w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-                <Fingerprint className="w-8 h-8 text-green-600 dark:text-green-400" />
+                <BiometricIcon className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
               <DialogTitle className="text-center text-xl">
                 You're All Set!
               </DialogTitle>
               <DialogDescription className="text-center pt-2">
-                Next time you visit, just tap "Sign in with Biometrics" for instant access.
+                Next time you visit, just tap "{biometricInfo.name}" for instant access.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>

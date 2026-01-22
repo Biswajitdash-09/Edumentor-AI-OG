@@ -19,6 +19,9 @@ import { Input } from "@/components/ui/input";
 import AuditLogViewer from "@/components/AuditLogViewer";
 import { UserEditDialog } from "@/components/UserEditDialog";
 import { PaginationControls } from "@/components/PaginationControls";
+import { ParentVerificationTab } from "@/components/ParentVerificationTab";
+import { BulkUserImport } from "@/components/BulkUserImport";
+import { UserExport } from "@/components/UserExport";
 
 interface SystemStats {
   totalStudents: number;
@@ -312,9 +315,10 @@ const AdminDashboard = () => {
 
         {/* Tabs for different sections */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="parents">Parents</TabsTrigger>
             <TabsTrigger value="audit">Audit Logs</TabsTrigger>
           </TabsList>
 
@@ -436,15 +440,19 @@ const AdminDashboard = () => {
           {/* User Management Tab */}
           <TabsContent value="users" className="space-y-6">
             <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                   <UserCog className="w-5 h-5 text-primary" />
                   User Role Management
                 </h2>
-                <Button variant="outline" size="sm" onClick={fetchDashboardData} disabled={loading}>
-                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <BulkUserImport onSuccess={fetchDashboardData} />
+                  <UserExport />
+                  <Button variant="outline" size="sm" onClick={fetchDashboardData} disabled={loading}>
+                    <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </Button>
+                </div>
               </div>
 
               {/* Search and Filter */}
@@ -566,6 +574,11 @@ const AdminDashboard = () => {
                 itemsPerPage={USERS_PER_PAGE}
               />
             </Card>
+          </TabsContent>
+
+          {/* Parent Verification Tab */}
+          <TabsContent value="parents">
+            <ParentVerificationTab />
           </TabsContent>
 
           {/* Audit Logs Tab */}

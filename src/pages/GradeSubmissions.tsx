@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/DashboardLayout";
 import PlagiarismChecker from "@/components/PlagiarismChecker";
-import { FileText, Download, Award } from "lucide-react";
+import { BulkGradingDialog } from "@/components/BulkGradingDialog";
+import { FileText, Download, Award, Users } from "lucide-react";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -49,6 +50,7 @@ const GradeSubmissions = () => {
   const [loading, setLoading] = useState(true);
   const [gradingSubmission, setGradingSubmission] = useState<string | null>(null);
   const [gradeData, setGradeData] = useState({ grade: 0, feedback: "" });
+  const [bulkGradingOpen, setBulkGradingOpen] = useState(false);
 
   useEffect(() => {
     if (user && id) {
@@ -202,17 +204,34 @@ const GradeSubmissions = () => {
         </Card>
 
         <Tabs defaultValue="ungraded">
-          <TabsList>
-            <TabsTrigger value="ungraded">
-              Ungraded ({ungradedSubmissions.length})
-            </TabsTrigger>
-            <TabsTrigger value="graded">
-              Graded ({gradedSubmissions.length})
-            </TabsTrigger>
-            <TabsTrigger value="plagiarism">
-              Plagiarism Check
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-4">
+            <TabsList>
+              <TabsTrigger value="ungraded">
+                Ungraded ({ungradedSubmissions.length})
+              </TabsTrigger>
+              <TabsTrigger value="graded">
+                Graded ({gradedSubmissions.length})
+              </TabsTrigger>
+              <TabsTrigger value="plagiarism">
+                Plagiarism Check
+              </TabsTrigger>
+            </TabsList>
+            {ungradedSubmissions.length > 1 && (
+              <Button onClick={() => setBulkGradingOpen(true)} variant="outline">
+                <Users className="w-4 h-4 mr-2" />
+                Bulk Grade ({ungradedSubmissions.length})
+              </Button>
+            )}
+          </div>
+
+          <BulkGradingDialog
+            open={bulkGradingOpen}
+            onOpenChange={setBulkGradingOpen}
+            submissions={ungradedSubmissions}
+            maxPoints={assignment.max_points}
+            assignmentId={id || ""}
+            onSuccess={fetchSubmissions}
+          />
 
           <TabsContent value="ungraded" className="space-y-4">
             {ungradedSubmissions.map((submission) => (

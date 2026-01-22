@@ -26,6 +26,15 @@ interface UpcomingClass {
   courseId: string;
 }
 
+interface UpcomingAssignment {
+  id: string;
+  title: string;
+  dueDate: Date;
+  courseName: string;
+  courseId: string;
+  urgency: "urgent" | "upcoming" | "future";
+}
+
 const StudentDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -39,6 +48,7 @@ const StudentDashboard = () => {
   });
   const [upcomingClasses, setUpcomingClasses] = useState<UpcomingClass[]>([]);
   const [recentAnnouncements, setRecentAnnouncements] = useState<any[]>([]);
+  const [upcomingAssignments, setUpcomingAssignments] = useState<UpcomingAssignment[]>([]);
   const [newActivityCount, setNewActivityCount] = useState(0);
 
   const fetchDashboardData = useCallback(async () => {
@@ -116,7 +126,7 @@ const StudentDashboard = () => {
           time: session.session_time,
           room: "TBA",
           courseId: session.course_id,
-        })) || [];
+          })) || [];
 
       // Fetch recent assignments as announcements
       const { data: recentAssignments } = await supabase
@@ -133,6 +143,37 @@ const StudentDashboard = () => {
           course: assignment.courses?.title,
         })) || [];
 
+      // Fetch upcoming assignments with color coding
+      const { data: upcomingAssignmentsData } = await supabase
+        .from("assignments")
+        .select("id, title, due_date, course_id, courses(title)")
+        .in("course_id", courseIds)
+        .gte("due_date", new Date().toISOString())
+        .order("due_date", { ascending: true })
+        .limit(5);
+
+      const now = new Date();
+      const assignmentsWithUrgency: UpcomingAssignment[] = (upcomingAssignmentsData || []).map((a: any) => {
+        const dueDate = new Date(a.due_date);
+        const hoursUntilDue = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+        
+        let urgency: "urgent" | "upcoming" | "future" = "future";
+        if (hoursUntilDue <= 24) {
+          urgency = "urgent";
+        } else if (hoursUntilDue <= 72) {
+          urgency = "upcoming";
+        }
+
+        return {
+          id: a.id,
+          title: a.title,
+          dueDate,
+          courseName: a.courses?.title || "Unknown",
+          courseId: a.course_id,
+          urgency,
+        };
+      });
+
       setStats({
         enrolledCourses: enrolledCount || 0,
         assignmentsDue: assignmentsDueCount,
@@ -141,6 +182,7 @@ const StudentDashboard = () => {
       });
       setUpcomingClasses(upcomingClassesData);
       setRecentAnnouncements(announcementsData);
+      setUpcomingAssignments(assignmentsWithUrgency);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       toast({
@@ -257,6 +299,59 @@ const StudentDashboard = () => {
             );
           })}
         </div>
+
+        {/* Upcoming Assignments with Color Coding */}
+        {upcomingAssignments.length > 0 && (
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                Upcoming Assignments
+              </h2>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/courses")}>View All</Button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {upcomingAssignments.map((assignment) => (
+                <div
+                  key={assignment.id}
+                  className={`p-4 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-shadow ${
+                    assignment.urgency === "urgent"
+                      ? "bg-destructive/10 border-l-destructive"
+                      : assignment.urgency === "upcoming"
+                      ? "bg-yellow-500/10 border-l-yellow-500"
+                      : "bg-primary/10 border-l-primary"
+                  }`}
+                  onClick={() => navigate(`/courses/${assignment.courseId}`)}
+                >
+                  <h3 className="font-medium text-sm truncate">{assignment.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{assignment.courseName}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Clock className={`w-3 h-3 ${
+                      assignment.urgency === "urgent"
+                        ? "text-destructive"
+                        : assignment.urgency === "upcoming"
+                        ? "text-yellow-600"
+                        : "text-primary"
+                    }`} />
+                    <span className={`text-xs font-medium ${
+                      assignment.urgency === "urgent"
+                        ? "text-destructive"
+                        : assignment.urgency === "upcoming"
+                        ? "text-yellow-600"
+                        : "text-primary"
+                    }`}>
+                      {assignment.urgency === "urgent"
+                        ? "Due in < 24h"
+                        : assignment.urgency === "upcoming"
+                        ? "Due in 1-3 days"
+                        : new Date(assignment.dueDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Upcoming Classes */}

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bell, Check, Trash2, BellOff, Volume2 } from "lucide-react";
+import { Bell, Check, Trash2, BellOff, Volume2, BellRing, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -31,9 +33,11 @@ export function NotificationCenter() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isSupported: pushSupported, isEnabled: pushEnabled, requestPermission, sendNotification: sendPushNotification } = usePushNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     return localStorage.getItem("notification-sound") !== "false";
   });
@@ -102,6 +106,15 @@ export function NotificationCenter() {
             title: newNotification.title,
             description: newNotification.message,
           });
+          
+          // Send browser push notification if enabled
+          if (pushEnabled) {
+            sendPushNotification(newNotification.title, {
+              body: newNotification.message,
+              tag: newNotification.id,
+              data: { link: newNotification.link },
+            });
+          }
         }
       )
       .subscribe();
@@ -109,7 +122,7 @@ export function NotificationCenter() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, playNotificationSound, toast]);
+  }, [user, playNotificationSound, toast, pushEnabled, sendPushNotification]);
 
   const markAsRead = async (id: string) => {
     await supabase
@@ -171,6 +184,22 @@ export function NotificationCenter() {
     localStorage.setItem("notification-sound", String(newValue));
   };
 
+  const handleEnablePush = async () => {
+    const granted = await requestPermission();
+    if (granted) {
+      toast({
+        title: "Push Notifications Enabled",
+        description: "You'll now receive browser notifications for important updates.",
+      });
+    } else {
+      toast({
+        title: "Permission Denied",
+        description: "Push notifications were not enabled. You can enable them in your browser settings.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "success":
@@ -220,14 +249,10 @@ export function NotificationCenter() {
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={toggleSound}
-              title={soundEnabled ? "Mute notifications" : "Unmute notifications"}
+              onClick={() => setShowSettings(!showSettings)}
+              title="Notification settings"
             >
-              {soundEnabled ? (
-                <Volume2 className="h-4 w-4" />
-              ) : (
-                <BellOff className="h-4 w-4 text-muted-foreground" />
-              )}
+              <Settings className="h-4 w-4" />
             </Button>
             {unreadCount > 0 && (
               <Button
@@ -241,6 +266,38 @@ export function NotificationCenter() {
             )}
           </div>
         </DropdownMenuLabel>
+        
+        {/* Settings Panel */}
+        {showSettings && (
+          <>
+            <div className="p-3 space-y-3 bg-muted/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">Sound alerts</span>
+                </div>
+                <Switch checked={soundEnabled} onCheckedChange={toggleSound} />
+              </div>
+              
+              {pushSupported && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BellRing className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">Browser notifications</span>
+                  </div>
+                  {pushEnabled ? (
+                    <Badge variant="outline" className="text-xs">Enabled</Badge>
+                  ) : (
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEnablePush}>
+                      Enable
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuSeparator />
         <ScrollArea className="h-[400px]">
           {notifications.length === 0 ? (

@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { MobileQuickActions } from "@/components/MobileQuickActions";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
@@ -327,10 +328,13 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
       </nav>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 md:px-6 py-4 md:py-8">
+      <main className="container mx-auto px-4 md:px-6 py-4 md:py-8 pb-24 md:pb-8">
         <Breadcrumbs />
         {children}
       </main>
+
+      {/* Mobile Quick Actions */}
+      {userRole && <MobileQuickActions role={userRole} />}
     </div>
   );
 };

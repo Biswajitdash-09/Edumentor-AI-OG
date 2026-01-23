@@ -63,9 +63,11 @@ const Install = () => {
   };
 
   const features = [
-    { icon: "📱", title: "Works Offline", description: "Access your courses and materials even without internet" },
-    { icon: "⚡", title: "Lightning Fast", description: "Native-like performance with instant loading" },
-    { icon: "🔔", title: "Push Notifications", description: "Get instant alerts for assignments, grades, and announcements" },
+    { icon: "📱", title: "Works Offline", description: "Check in to classes even without internet. Syncs automatically when online." },
+    { icon: "⚡", title: "Lightning Fast", description: "Native-like performance with instant loading and smooth animations" },
+    { icon: "🔔", title: "Push Notifications", description: "Get instant alerts for assignments, grades, and attendance sessions" },
+    { icon: "📍", title: "Quick Check-In", description: "One-tap attendance with QR scan and location verification" },
+    { icon: "📊", title: "Offline Analytics", description: "View your grades and progress even without connection" },
     { icon: "💾", title: "Less Storage", description: "Takes up minimal space compared to native apps" },
   ];
 

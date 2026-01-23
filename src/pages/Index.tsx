@@ -81,6 +81,13 @@ const Index = () => {
     }
   ];
 
+  const stats = [
+    { value: "10K+", label: "Active Students" },
+    { value: "500+", label: "Expert Faculty" },
+    { value: "98%", label: "Satisfaction Rate" },
+    { value: "50+", label: "Institutions" },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead />
@@ -177,6 +184,20 @@ const Index = () => {
                 className="relative rounded-3xl shadow-2xl w-full"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-12 sm:py-16 px-4 sm:px-6 border-b border-border">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <p className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary">{stat.value}</p>
+                <p className="text-sm sm:text-base text-muted-foreground mt-1">{stat.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

@@ -14,12 +14,16 @@ import {
   FileText,
   BookOpen,
   Target,
-  Award
+  Award,
+  Download,
+  FileSpreadsheet
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
+import { toast } from "@/hooks/use-toast";
+import { exportStudentAnalyticsPDF, exportStudentAnalyticsExcel } from "@/lib/studentReportExport";
 import { 
   LineChart, 
   Line, 
@@ -67,6 +71,7 @@ const StudentAnalytics = () => {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("semester");
+  const [userName, setUserName] = useState<string>("Student");
   
   // Data states
   const [attendanceTrends, setAttendanceTrends] = useState<AttendanceTrend[]>([]);
@@ -84,8 +89,19 @@ const StudentAnalytics = () => {
   useEffect(() => {
     if (user) {
       fetchAnalyticsData();
+      fetchUserName();
     }
   }, [user, selectedPeriod]);
+
+  const fetchUserName = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .single();
+    if (data) setUserName(data.full_name || "Student");
+  };
 
   const fetchAnalyticsData = async () => {
     if (!user) return;
@@ -300,6 +316,66 @@ const StudentAnalytics = () => {
     });
   };
 
+  const handleExportPDF = () => {
+    try {
+      exportStudentAnalyticsPDF({
+        student: {
+          studentName: userName,
+          averageGrade: overallStats.averageGrade,
+          attendanceRate: overallStats.totalAttendance,
+          completedAssignments: overallStats.completedAssignments,
+          totalAssignments: overallStats.totalAssignments,
+          enrolledCourses: overallStats.enrolledCourses,
+        },
+        attendanceTrends,
+        coursePerformance,
+        gradeProgression,
+        assignmentStats: assignmentStats.map(s => ({ status: s.status, count: s.count })),
+      });
+      toast({
+        title: "PDF Downloaded",
+        description: "Your academic report has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate PDF report.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportExcel = () => {
+    try {
+      exportStudentAnalyticsExcel({
+        student: {
+          studentName: userName,
+          averageGrade: overallStats.averageGrade,
+          attendanceRate: overallStats.totalAttendance,
+          completedAssignments: overallStats.completedAssignments,
+          totalAssignments: overallStats.totalAssignments,
+          enrolledCourses: overallStats.enrolledCourses,
+        },
+        attendanceTrends,
+        coursePerformance,
+        gradeProgression,
+        assignmentStats: assignmentStats.map(s => ({ status: s.status, count: s.count })),
+      });
+      toast({
+        title: "Excel Downloaded",
+        description: "Your academic report has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error("Error exporting Excel:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate Excel report.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const chartConfig = {
     attendance: {
       label: "Your Attendance",
@@ -331,16 +407,26 @@ const StudentAnalytics = () => {
             <h1 className="text-2xl sm:text-3xl font-bold">My Analytics</h1>
             <p className="text-muted-foreground">Track your academic performance and progress</p>
           </div>
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="semester">This Semester</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="semester">This Semester</SelectItem>
+                <SelectItem value="year">This Year</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={loading}>
+              <Download className="w-4 h-4 mr-2" />
+              PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={loading}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Excel
+            </Button>
+          </div>
         </div>
 
         {/* Overview Stats */}

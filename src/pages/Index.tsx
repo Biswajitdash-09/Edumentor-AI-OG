@@ -7,17 +7,18 @@ import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import heroImage from "@/assets/hero-image.jpg";
 import DemoVideoDialog from "@/components/DemoVideoDialog";
 import { SEOHead } from "@/components/SEOHead";
-
 const Index = () => {
   const [showDemo, setShowDemo] = useState(false);
-  const { isRegistered: hasBiometricRegistered, isSupported: isBiometricSupported } = useBiometricAuth();
+  const {
+    isRegistered: hasBiometricRegistered,
+    isSupported: isBiometricSupported
+  } = useBiometricAuth();
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
       return document.documentElement.classList.contains("dark");
     }
     return false;
   });
-
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark");
@@ -27,7 +28,6 @@ const Index = () => {
       localStorage.setItem("theme", "light");
     }
   }, [isDark]);
-
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") {
@@ -38,58 +38,53 @@ const Index = () => {
       setIsDark(true);
     }
   }, []);
-  const features = [
-    {
-      icon: BookOpen,
-      title: "Smart Course Management",
-      description: "Access all your courses, materials, and resources in one unified platform"
-    },
-    {
-      icon: Brain,
-      title: "AI Academic Mentor",
-      description: "Get instant help with doubts, concepts, and personalized study recommendations"
-    },
-    {
-      icon: FileCheck,
-      title: "Automated Submissions",
-      description: "Submit assignments with AI-powered plagiarism detection and instant feedback"
-    },
-    {
-      icon: Calendar,
-      title: "Smart Attendance",
-      description: "QR-based attendance with geo-fencing and automatic analytics"
-    },
-    {
-      icon: BarChart3,
-      title: "Performance Analytics",
-      description: "Track your academic progress with AI-driven insights and predictions"
-    },
-    {
-      icon: Users,
-      title: "Collaborative Learning",
-      description: "Connect with peers, form study groups, and work on projects together"
-    },
-    {
-      icon: MessageSquare,
-      title: "Real-time Communication",
-      description: "Stay updated with announcements, notifications, and important updates"
-    },
-    {
-      icon: Award,
-      title: "Research & Placement",
-      description: "Access internship opportunities, project tracking, and career guidance"
-    }
-  ];
-
-  const stats = [
-    { value: "10K+", label: "Active Students" },
-    { value: "500+", label: "Expert Faculty" },
-    { value: "98%", label: "Satisfaction Rate" },
-    { value: "50+", label: "Institutions" },
-  ];
-
-  return (
-    <div className="min-h-screen bg-background">
+  const features = [{
+    icon: BookOpen,
+    title: "Smart Course Management",
+    description: "Access all your courses, materials, and resources in one unified platform"
+  }, {
+    icon: Brain,
+    title: "AI Academic Mentor",
+    description: "Get instant help with doubts, concepts, and personalized study recommendations"
+  }, {
+    icon: FileCheck,
+    title: "Automated Submissions",
+    description: "Submit assignments with AI-powered plagiarism detection and instant feedback"
+  }, {
+    icon: Calendar,
+    title: "Smart Attendance",
+    description: "QR-based attendance with geo-fencing and automatic analytics"
+  }, {
+    icon: BarChart3,
+    title: "Performance Analytics",
+    description: "Track your academic progress with AI-driven insights and predictions"
+  }, {
+    icon: Users,
+    title: "Collaborative Learning",
+    description: "Connect with peers, form study groups, and work on projects together"
+  }, {
+    icon: MessageSquare,
+    title: "Real-time Communication",
+    description: "Stay updated with announcements, notifications, and important updates"
+  }, {
+    icon: Award,
+    title: "Research & Placement",
+    description: "Access internship opportunities, project tracking, and career guidance"
+  }];
+  const stats = [{
+    value: "10K+",
+    label: "Active Students"
+  }, {
+    value: "500+",
+    label: "Expert Faculty"
+  }, {
+    value: "98%",
+    label: "Satisfaction Rate"
+  }, {
+    value: "50+",
+    label: "Institutions"
+  }];
+  return <div className="min-h-screen bg-background">
       <SEOHead />
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b border-border z-50">
@@ -100,12 +95,7 @@ const Index = () => {
               <span className="text-lg sm:text-2xl font-bold text-foreground">EduMentor AI</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsDark(!isDark)}
-                className="h-9 w-9"
-              >
+              <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)} className="h-9 w-9">
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
               <Link to="/install" className="hidden sm:flex">
@@ -114,18 +104,14 @@ const Index = () => {
                   Install App
                 </Button>
               </Link>
-              {hasBiometricRegistered ? (
-                <Link to="/auth?mode=biometric">
+              {hasBiometricRegistered ? <Link to="/auth?mode=biometric">
                   <Button variant="ghost" size="sm" className="text-sm sm:text-base gap-1">
                     <Fingerprint className="w-4 h-4" />
                     <span className="hidden sm:inline">Quick Sign In</span>
                   </Button>
-                </Link>
-              ) : (
-                <Link to="/auth">
+                </Link> : <Link to="/auth">
                   <Button variant="ghost" size="sm" className="text-sm sm:text-base">Login</Button>
-                </Link>
-              )}
+                </Link>}
               <Link to="/auth">
                 <Button size="sm" className="text-sm sm:text-base">Get Started</Button>
               </Link>
@@ -152,55 +138,25 @@ const Index = () => {
                     Start Learning
                   </Button>
                 </Link>
-                {(hasBiometricRegistered || isBiometricSupported) && (
-                  <Link to="/auth?mode=biometric" className="w-full sm:w-auto">
-                    <Button 
-                      size="lg" 
-                      variant="outline" 
-                      className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 gap-2"
-                    >
+                {(hasBiometricRegistered || isBiometricSupported) && <Link to="/auth?mode=biometric" className="w-full sm:w-auto">
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 gap-2">
                       <Fingerprint className="w-5 h-5" />
                       {hasBiometricRegistered ? "Quick Sign In" : "Biometric Sign In"}
                     </Button>
-                  </Link>
-                )}
-                {!hasBiometricRegistered && !isBiometricSupported && (
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8"
-                    onClick={() => setShowDemo(true)}
-                  >
-                    Watch Demo
-                  </Button>
-                )}
+                  </Link>}
+                {!hasBiometricRegistered && !isBiometricSupported}
               </div>
             </div>
             <div className="relative hidden sm:block">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-3xl blur-3xl"></div>
-              <img 
-                src={heroImage} 
-                alt="Educational platform interface" 
-                className="relative rounded-3xl shadow-2xl w-full"
-              />
+              <img src={heroImage} alt="Educational platform interface" className="relative rounded-3xl shadow-2xl w-full" />
             </div>
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 sm:py-16 px-4 sm:px-6 border-b border-border">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <p className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary">{stat.value}</p>
-                <p className="text-sm sm:text-base text-muted-foreground mt-1">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      
 
       {/* Features Grid */}
       <section className="py-12 sm:py-20 px-4 sm:px-6 bg-muted/50">
@@ -213,15 +169,13 @@ const Index = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {features.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <Card key={index} className="p-4 sm:p-6 hover:shadow-lg transition-shadow">
+            const Icon = feature.icon;
+            return <Card key={index} className="p-4 sm:p-6 hover:shadow-lg transition-shadow">
                   <Icon className="w-8 h-8 sm:w-12 sm:h-12 text-primary mb-3 sm:mb-4" />
                   <h3 className="text-lg sm:text-xl font-semibold mb-2">{feature.title}</h3>
                   <p className="text-sm sm:text-base text-muted-foreground">{feature.description}</p>
-                </Card>
-              );
-            })}
+                </Card>;
+          })}
           </div>
         </div>
       </section>
@@ -258,9 +212,7 @@ const Index = () => {
                 <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
                 <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
               </div>
-              <p className="text-sm sm:text-base text-muted-foreground text-center">
-                © 2025 EduMentor AI. All rights reserved.
-              </p>
+              <p className="text-sm sm:text-base text-muted-foreground text-center">© 2026 EduMentor AI. All rights reserved.</p>
             </div>
             
             {/* Developer Contact */}
@@ -270,29 +222,16 @@ const Index = () => {
                   Made with <Heart className="w-4 h-4 text-red-500 fill-red-500" /> by <span className="font-semibold text-foreground">Biswajit Dash</span>
                 </p>
                 <div className="flex items-center gap-4">
-                  <a 
-                    href="mailto:biswajitdash929@gmail.com" 
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+                  <a href="mailto:biswajitdash929@gmail.com" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
                     <Mail className="w-4 h-4" />
                     <span className="hidden sm:inline">biswajitdash929@gmail.com</span>
                     <span className="sm:hidden">Email</span>
                   </a>
-                  <a 
-                    href="https://www.linkedin.com/in/biswajitdash09" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+                  <a href="https://www.linkedin.com/in/biswajitdash09" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
                     <Linkedin className="w-4 h-4" />
                     <span>LinkedIn</span>
                   </a>
-                  <a 
-                    href="https://github.com/Biswajitdash-09" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+                  <a href="https://github.com/Biswajitdash-09" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
                     <Github className="w-4 h-4" />
                     <span>GitHub</span>
                   </a>
@@ -304,8 +243,6 @@ const Index = () => {
       </footer>
 
       <DemoVideoDialog open={showDemo} onOpenChange={setShowDemo} />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;

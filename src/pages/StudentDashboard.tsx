@@ -4,13 +4,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Calendar, FileText, MessageSquare, TrendingUp, Clock, Bell } from "lucide-react";
+import { BookOpen, Calendar, FileText, MessageSquare, TrendingUp, Clock, Bell, QrCode, Wifi, WifiOff } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { SEOHead } from "@/components/SEOHead";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { OfflineAttendanceCheckIn } from "@/components/OfflineAttendanceCheckIn";
 
 interface DashboardStats {
   enrolledCourses: number;
@@ -40,6 +42,8 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState<string>("");
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const { isOnline, getPendingCount } = useOfflineSync();
   const [stats, setStats] = useState<DashboardStats>({
     enrolledCourses: 0,
     assignmentsDue: 0,
@@ -262,18 +266,39 @@ const StudentDashboard = () => {
         description="View your enrolled courses, assignments, attendance, and upcoming classes."
       />
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Welcome Back{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
-            <p className="text-muted-foreground">Here's what's happening with your courses today.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome Back{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Here's what's happening with your courses today.</p>
           </div>
-          {newActivityCount > 0 && (
-            <Button onClick={fetchDashboardData} variant="outline" className="gap-2">
-              <Bell className="h-4 w-4" />
-              {newActivityCount} New Update{newActivityCount > 1 ? 's' : ''}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Network Status Badge */}
+            <Badge variant={isOnline ? "outline" : "destructive"} className="gap-1.5">
+              {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+              {isOnline ? "Online" : "Offline"}
+              {getPendingCount() > 0 && ` (${getPendingCount()} pending)`}
+            </Badge>
+            
+            {newActivityCount > 0 && (
+              <Button onClick={fetchDashboardData} variant="outline" size="sm" className="gap-2">
+                <Bell className="h-4 w-4" />
+                {newActivityCount}
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Quick Check-In Button - Mobile Prominent */}
+        <Card className="p-4 sm:hidden bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
+          <Button 
+            className="w-full gap-2" 
+            size="lg"
+            onClick={() => setCheckInOpen(true)}
+          >
+            <QrCode className="h-5 w-5" />
+            Quick Check-In
+          </Button>
+        </Card>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -427,6 +452,13 @@ const StudentDashboard = () => {
             </Button>
           </div>
         </Card>
+
+        {/* Offline Check-In Dialog */}
+        <OfflineAttendanceCheckIn
+          open={checkInOpen}
+          onOpenChange={setCheckInOpen}
+          onSuccess={fetchDashboardData}
+        />
       </div>
     </DashboardLayout>
   );

@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { NetworkStatus } from "@/components/NetworkStatus";
+import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -38,6 +40,8 @@ const App = () => (
       <ErrorBoundary>
         <Toaster />
         <Sonner />
+        <NetworkStatus />
+        <PWAUpdatePrompt />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             {/* Public routes */}

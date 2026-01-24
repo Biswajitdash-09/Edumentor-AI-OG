@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Search, BookOpen, User, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface SearchResult {
   type: "course" | "student" | "assignment";
@@ -21,6 +22,7 @@ export function QuickSearch() {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -135,6 +137,11 @@ export function QuickSearch() {
       setResults(searchResults.slice(0, 8));
     } catch (error) {
       console.error("Search error:", error);
+      toast({
+        title: "Search Failed",
+        description: "Unable to search at this time. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

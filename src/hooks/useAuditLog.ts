@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import type { Json } from "@/integrations/supabase/types";
 
 type AuditAction = 
@@ -20,6 +21,8 @@ interface AuditLogParams {
 }
 
 export const useAuditLog = () => {
+  const { toast } = useToast();
+
   const logAction = async ({
     action,
     entityType,
@@ -58,9 +61,20 @@ export const useAuditLog = () => {
 
       if (error) {
         console.error("Failed to create audit log:", error);
+        // Show toast for audit log failure
+        toast({
+          title: "Audit Log Warning",
+          description: "Failed to record this action in the audit log. The action itself was successful.",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error("Error in audit logging:", err);
+      toast({
+        title: "Audit Log Error",
+        description: "An error occurred while recording this action.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -68,3 +82,4 @@ export const useAuditLog = () => {
 };
 
 export default useAuditLog;
+

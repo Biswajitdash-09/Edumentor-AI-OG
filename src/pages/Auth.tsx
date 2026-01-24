@@ -5,8 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { Brain, Loader2, Phone, Mail, Fingerprint, ArrowLeft, GraduationCap, BookOpen, Shield, Users, ScanFace, Scan } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Brain, Loader2, Phone, Mail, Fingerprint, ArrowLeft, GraduationCap, ScanFace, Scan } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { SEOHead } from "@/components/SEOHead";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { getBiometricInfo, getBiometricActionText, detectPlatform } from "@/lib/platformDetection";
+import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -28,7 +28,11 @@ const loginSchema = z.object({
 const signupSchema = z.object({
   fullName: z.string().trim().min(2, { message: "Name must be at least 2 characters" }).max(100),
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  password: z.string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .regex(/[A-Z]/, { message: "Password must contain an uppercase letter" })
+    .regex(/[a-z]/, { message: "Password must contain a lowercase letter" })
+    .regex(/\d/, { message: "Password must contain a number" }),
 });
 
 const phoneSchema = z.object({
@@ -47,8 +51,8 @@ const Auth = () => {
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [pendingRole, setPendingRole] = useState<string>("student");
-  // Demo mode: Allow all roles for testing
-  const [selectedRole, setSelectedRole] = useState<"student" | "faculty" | "admin" | "parent">("student");
+  // Password for strength indicator
+  const [signupPassword, setSignupPassword] = useState("");
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
   const [phone, setPhone] = useState("");
@@ -304,10 +308,11 @@ const Auth = () => {
           console.error("Failed to save consent:", consentError);
         }
 
-        // Assign user role - all roles allowed for testing
+        // Assign user role - Only student role allowed for self-registration
+        // Faculty, Admin, and Parent roles must be assigned by an administrator
         const { error: roleError } = await supabase.rpc("assign_user_role", {
           _user_id: data.user.id,
-          _role: selectedRole,
+          _role: "student",
         });
 
         if (roleError) {
@@ -324,17 +329,17 @@ const Auth = () => {
           body: {
             email: validated.email,
             fullName: validated.fullName,
-            role: selectedRole
+            role: "student"
           }
         }).catch(err => console.error("Failed to send welcome email:", err));
 
         toast({
           title: "Account Created",
-          description: `Welcome to EduMentor AI as ${selectedRole}!`,
+          description: "Welcome to EduMentor AI!",
         });
         
         // Show biometric setup for new users
-        await handleLoginSuccess(data.user.id, validated.email, selectedRole);
+        await handleLoginSuccess(data.user.id, validated.email, "student");
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -663,45 +668,20 @@ const Auth = () => {
                       type="password" 
                       placeholder="••••••••"
                       required
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
                     />
+                    <PasswordStrengthIndicator password={signupPassword} />
                   </div>
                   
-                  {/* Role selector for demo */}
-                  <div className="space-y-2">
-                    <Label>Account Type</Label>
-                    <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as typeof selectedRole)}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select account type" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border border-border shadow-lg z-50">
-                        <SelectItem value="student">
-                          <span className="flex items-center gap-2">
-                            <GraduationCap className="h-4 w-4 text-primary" />
-                            Student
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="faculty">
-                          <span className="flex items-center gap-2">
-                            <BookOpen className="h-4 w-4 text-primary" />
-                            Faculty / Teacher
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="admin">
-                          <span className="flex items-center gap-2">
-                            <Shield className="h-4 w-4 text-primary" />
-                            Administrator
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="parent">
-                          <span className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-primary" />
-                            Parent
-                          </span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Demo mode: All account types available for testing
+                  {/* Account type info */}
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm">
+                      <GraduationCap className="h-4 w-4 text-primary" />
+                      <span className="font-medium">Student Account</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Faculty, Admin, and Parent accounts are created by administrators.
                     </p>
                   </div>
                   
@@ -717,7 +697,7 @@ const Auth = () => {
                     className="w-full" 
                     disabled={isLoading || !termsAccepted || !privacyAccepted}
                   >
-                    {isLoading ? "Creating account..." : `Create ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Account`}
+                    {isLoading ? "Creating account..." : "Create Student Account"}
                   </Button>
                 </form>
               ) : (
@@ -761,42 +741,14 @@ const Auth = () => {
                         </p>
                       </div>
                       
-                      {/* Role selector for demo - phone signup */}
-                      <div className="space-y-2">
-                        <Label>Account Type</Label>
-                        <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as typeof selectedRole)}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select account type" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover border border-border shadow-lg z-50">
-                            <SelectItem value="student">
-                              <span className="flex items-center gap-2">
-                                <GraduationCap className="h-4 w-4 text-primary" />
-                                Student
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="faculty">
-                              <span className="flex items-center gap-2">
-                                <BookOpen className="h-4 w-4 text-primary" />
-                                Faculty / Teacher
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="admin">
-                              <span className="flex items-center gap-2">
-                                <Shield className="h-4 w-4 text-primary" />
-                                Administrator
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="parent">
-                              <span className="flex items-center gap-2">
-                                <Users className="h-4 w-4 text-primary" />
-                                Parent
-                              </span>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Demo mode: All account types available for testing
+                      {/* Account type info */}
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm">
+                          <GraduationCap className="h-4 w-4 text-primary" />
+                          <span className="font-medium">Student Account</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Faculty, Admin, and Parent accounts are created by administrators.
                         </p>
                       </div>
                       
@@ -906,10 +858,10 @@ const Auth = () => {
                                   console.error("Failed to create profile:", profileError);
                                 }
 
-                                // Assign user role
+                                // Assign user role - Only student role for self-registration
                                 const { error: roleError } = await supabase.rpc("assign_user_role", {
                                   _user_id: data.user.id,
-                                  _role: selectedRole,
+                                  _role: "student",
                                 });
 
                                 if (roleError) {
@@ -927,17 +879,17 @@ const Auth = () => {
                                     body: {
                                       email: signupEmail.trim(),
                                       fullName: signupName.trim(),
-                                      role: selectedRole
+                                      role: "student"
                                     }
                                   }).catch(err => console.error("Failed to send welcome email:", err));
                                 }
 
                                 toast({
                                   title: "Account Created",
-                                  description: `Welcome to EduMentor AI as ${selectedRole}!`,
+                                  description: "Welcome to EduMentor AI!",
                                 });
                                 
-                                navigate(`/dashboard/${selectedRole}`);
+                                navigate("/dashboard/student");
                               }
                             }
                           } catch (error: any) {
@@ -951,7 +903,7 @@ const Auth = () => {
                           }
                         }}
                       >
-                        {isLoading ? "Creating account..." : `Create ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Account`}
+                        {isLoading ? "Creating account..." : "Create Student Account"}
                       </Button>
                       <Button 
                         type="button" 

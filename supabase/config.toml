@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.check-plagiarism]
 verify_jwt = true
+
+[functions.get-public-stats]
+verify_jwt = false

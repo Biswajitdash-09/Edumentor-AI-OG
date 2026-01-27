@@ -141,6 +141,11 @@ export function BulkGradingDialog({
           });
         } catch (e) {
           console.error("Failed to send notification:", e);
+          toast({
+            title: "Warning",
+            description: "Grade saved but notification email failed to send",
+            variant: "destructive"
+          });
         }
       }
 

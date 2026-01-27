@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Users, FileCheck, BarChart3, Calendar, PlusCircle, AlertTriangle, TrendingUp } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BookOpen, Users, FileCheck, BarChart3, Calendar, PlusCircle, AlertTriangle, TrendingUp, MessageSquare } from "lucide-react";
 import { QuickSearch } from "@/components/QuickSearch";
 import DashboardLayout from "@/components/DashboardLayout";
+import FacultyMessagesTab from "@/components/FacultyMessagesTab";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -55,14 +57,27 @@ const FacultyDashboard = () => {
   const [todaysClasses, setTodaysClasses] = useState<ScheduleClass[]>([]);
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [atRiskCount, setAtRiskCount] = useState(0);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   // Fetch data when user is available
   useEffect(() => {
     if (user) {
       fetchUserName();
       fetchDashboardData();
+      fetchUnreadMessages();
     }
   }, [user]);
+
+  const fetchUnreadMessages = async () => {
+    const { count } = await supabase
+      .from("parent_messages")
+      .select("*", { count: "exact", head: true })
+      .eq("faculty_id", user!.id)
+      .eq("sender_type", "parent")
+      .eq("is_read", false);
+    setUnreadMessages(count || 0);
+  };
 
   const fetchUserName = async () => {
     const { data } = await supabase
@@ -332,113 +347,133 @@ const FacultyDashboard = () => {
           })}
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Button className="h-24 flex-col gap-2" onClick={() => navigate("/courses")}>
-            <PlusCircle className="w-6 h-6" />
-            Create Assignment
-          </Button>
-          <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/schedule")}>
-            <Calendar className="w-6 h-6" />
-            Manage Schedule
-          </Button>
-          <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/courses")}>
-            <FileCheck className="w-6 h-6" />
-            Upload Materials
-          </Button>
-          <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/analytics")}>
-            <TrendingUp className="w-6 h-6" />
-            View Analytics
-          </Button>
-          <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/attendance")}>
-            <BarChart3 className="w-6 h-6" />
-            Attendance
-          </Button>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Today's Classes */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-primary" />
-                Today's Classes
-              </h2>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/attendance")}>View Schedule</Button>
-            </div>
-            <div className="space-y-4">
-              {loading ? (
-                <>
-                  <Skeleton className="h-24 w-full" />
-                  <Skeleton className="h-24 w-full" />
-                </>
-              ) : todaysClasses.length > 0 ? (
-                todaysClasses.map((cls, index) => (
-                  <div key={index} className="p-4 bg-muted/50 rounded-lg">
-                    <h3 className="font-semibold">{cls.course}</h3>
-                    <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                      <span>{formatTime(cls.time)} - {formatTime(cls.endTime)} • {cls.room}</span>
-                      <span>{cls.students} students</span>
-                    </div>
-                    <Button size="sm" className="mt-3 w-full" onClick={() => navigate("/attendance")}>Mark Attendance</Button>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No classes scheduled for today</p>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="messages" className="relative">
+              Messages
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadMessages}
+                </span>
               )}
-            </div>
-          </Card>
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Pending Tasks */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-primary" />
-                Pending Tasks
-              </h2>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/courses")}>View All</Button>
+          <TabsContent value="overview" className="space-y-6">
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <Button className="h-24 flex-col gap-2" onClick={() => navigate("/courses")}>
+                <PlusCircle className="w-6 h-6" />
+                Create Assignment
+              </Button>
+              <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/schedule")}>
+                <Calendar className="w-6 h-6" />
+                Manage Schedule
+              </Button>
+              <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/courses")}>
+                <FileCheck className="w-6 h-6" />
+                Upload Materials
+              </Button>
+              <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/analytics")}>
+                <TrendingUp className="w-6 h-6" />
+                View Analytics
+              </Button>
+              <Button className="h-24 flex-col gap-2" variant="outline" onClick={() => navigate("/attendance")}>
+                <BarChart3 className="w-6 h-6" />
+                Attendance
+              </Button>
             </div>
-            <div className="space-y-4">
-              {loading ? (
-                <>
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                </>
-              ) : pendingTasks.length > 0 ? (
-                pendingTasks.map((task, index) => (
-                  <div key={index} className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-medium">{task.task}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{task.count}</p>
+
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Today's Classes */}
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    Today's Classes
+                  </h2>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/attendance")}>View Schedule</Button>
+                </div>
+                <div className="space-y-4">
+                  {loading ? (
+                    <>
+                      <Skeleton className="h-24 w-full" />
+                      <Skeleton className="h-24 w-full" />
+                    </>
+                  ) : todaysClasses.length > 0 ? (
+                    todaysClasses.map((cls, index) => (
+                      <div key={index} className="p-4 bg-muted/50 rounded-lg">
+                        <h3 className="font-semibold">{cls.course}</h3>
+                        <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                          <span>{formatTime(cls.time)} - {formatTime(cls.endTime)} • {cls.room}</span>
+                          <span>{cls.students} students</span>
+                        </div>
+                        <Button size="sm" className="mt-3 w-full" onClick={() => navigate("/attendance")}>Mark Attendance</Button>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        task.priority === 'high' 
-                          ? 'bg-destructive/10 text-destructive' 
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {task.priority}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No pending tasks</p>
-              )}
-            </div>
-          </Card>
-        </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No classes scheduled for today</p>
+                  )}
+                </div>
+              </Card>
 
-        {/* AI Assistant */}
-        <Card className="p-8 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">AI-Powered Grading Assistant</h2>
-              <p className="text-muted-foreground">Let AI help you evaluate assignments faster with intelligent suggestions</p>
+              {/* Pending Tasks */}
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <FileCheck className="w-5 h-5 text-primary" />
+                    Pending Tasks
+                  </h2>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/courses")}>View All</Button>
+                </div>
+                <div className="space-y-4">
+                  {loading ? (
+                    <>
+                      <Skeleton className="h-20 w-full" />
+                      <Skeleton className="h-20 w-full" />
+                    </>
+                  ) : pendingTasks.length > 0 ? (
+                    pendingTasks.map((task, index) => (
+                      <div key={index} className="p-4 bg-muted/50 rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-medium">{task.task}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">{task.count}</p>
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            task.priority === 'high' 
+                              ? 'bg-destructive/10 text-destructive' 
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {task.priority}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No pending tasks</p>
+                  )}
+                </div>
+              </Card>
             </div>
-            <Button size="lg" onClick={() => navigate("/ai-mentor")}>Try AI Grading</Button>
-          </div>
-        </Card>
+
+            {/* AI Assistant */}
+            <Card className="p-8 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">AI-Powered Grading Assistant</h2>
+                  <p className="text-muted-foreground">Let AI help you evaluate assignments faster with intelligent suggestions</p>
+                </div>
+                <Button size="lg" onClick={() => navigate("/ai-mentor")}>Try AI Grading</Button>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="messages">
+            <FacultyMessagesTab />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

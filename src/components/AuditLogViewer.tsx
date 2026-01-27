@@ -8,8 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { History, Search, Filter, RefreshCw, UserCog, FileEdit, Trash2, Shield } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { History, Search, Filter, RefreshCw, UserCog, FileEdit, Trash2, Shield, Download, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { exportAuditLogsToPDF, exportAuditLogsToExcel } from "@/lib/auditExport";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuditLog {
   id: string;
@@ -34,10 +38,17 @@ const actionLabels: Record<string, { label: string; icon: typeof UserCog; varian
 };
 
 export const AuditLogViewer = () => {
+  const { toast } = useToast();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
+  const [userFilter, setUserFilter] = useState<string>("all");
+  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
 
   const fetchLogs = async () => {
     try {
@@ -46,10 +57,24 @@ export const AuditLogViewer = () => {
         .from("audit_logs")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (actionFilter !== "all") {
         query = query.eq("action", actionFilter);
+      }
+
+      if (userFilter !== "all") {
+        query = query.eq("user_id", userFilter);
+      }
+
+      if (dateRange.from) {
+        query = query.gte("created_at", dateRange.from.toISOString());
+      }
+
+      if (dateRange.to) {
+        const endOfDay = new Date(dateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        query = query.lte("created_at", endOfDay.toISOString());
       }
 
       const { data, error } = await query;
@@ -63,6 +88,10 @@ export const AuditLogViewer = () => {
           .from("profiles")
           .select("user_id, full_name")
           .in("user_id", userIds);
+
+        // Build unique users list for filter
+        const uniqueUsers = profiles?.map((p) => ({ id: p.user_id, name: p.full_name })) || [];
+        setUsers(uniqueUsers);
 
         const logsWithNames: AuditLog[] = data.map((log) => ({
           ...log,
@@ -78,6 +107,7 @@ export const AuditLogViewer = () => {
       }
     } catch (error) {
       console.error("Error fetching audit logs:", error);
+      toast({ title: "Error", description: "Failed to fetch audit logs", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -85,7 +115,7 @@ export const AuditLogViewer = () => {
 
   useEffect(() => {
     fetchLogs();
-  }, [actionFilter]);
+  }, [actionFilter, userFilter, dateRange]);
 
   // Set up realtime subscription
   useEffect(() => {
@@ -130,6 +160,31 @@ export const AuditLogViewer = () => {
       .join(", ");
   };
 
+  const handleExportPDF = () => {
+    if (filteredLogs.length === 0) {
+      toast({ title: "No data", description: "No logs to export", variant: "destructive" });
+      return;
+    }
+    exportAuditLogsToPDF(filteredLogs);
+    toast({ title: "Export Complete", description: "PDF downloaded successfully" });
+  };
+
+  const handleExportExcel = () => {
+    if (filteredLogs.length === 0) {
+      toast({ title: "No data", description: "No logs to export", variant: "destructive" });
+      return;
+    }
+    exportAuditLogsToExcel(filteredLogs);
+    toast({ title: "Export Complete", description: "Excel file downloaded successfully" });
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setActionFilter("all");
+    setUserFilter("all");
+    setDateRange({ from: undefined, to: undefined });
+  };
+
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -137,14 +192,25 @@ export const AuditLogViewer = () => {
           <History className="w-5 h-5 text-primary" />
           Audit Logs
         </h2>
-        <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+            <Download className="w-4 h-4 mr-2" />
+            PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel}>
+            <Download className="w-4 h-4 mr-2" />
+            Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      <div className="flex gap-4 mb-6">
-        <div className="relative flex-1">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search by user, action, or entity..."
@@ -153,10 +219,11 @@ export const AuditLogViewer = () => {
             className="pl-9"
           />
         </div>
+        
         <Select value={actionFilter} onValueChange={setActionFilter}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-40">
             <Filter className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Filter by action" />
+            <SelectValue placeholder="Action" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Actions</SelectItem>
@@ -166,6 +233,50 @@ export const AuditLogViewer = () => {
             <SelectItem value="login">Logins</SelectItem>
           </SelectContent>
         </Select>
+
+        <Select value={userFilter} onValueChange={setUserFilter}>
+          <SelectTrigger className="w-40">
+            <UserCog className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="User" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Users</SelectItem>
+            {users.map((u) => (
+              <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-[200px] justify-start text-left font-normal">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange.from ? (
+                dateRange.to ? (
+                  `${format(dateRange.from, "LLL dd")} - ${format(dateRange.to, "LLL dd")}`
+                ) : (
+                  format(dateRange.from, "LLL dd, y")
+                )
+              ) : (
+                "Date range"
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={{ from: dateRange.from, to: dateRange.to }}
+              onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+
+        {(searchTerm || actionFilter !== "all" || userFilter !== "all" || dateRange.from) && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            Clear Filters
+          </Button>
+        )}
       </div>
 
       <ScrollArea className="h-[500px]">
@@ -229,6 +340,11 @@ export const AuditLogViewer = () => {
           </div>
         )}
       </ScrollArea>
+
+      {/* Results count */}
+      <div className="mt-4 text-sm text-muted-foreground">
+        Showing {filteredLogs.length} of {logs.length} logs
+      </div>
     </Card>
   );
 };

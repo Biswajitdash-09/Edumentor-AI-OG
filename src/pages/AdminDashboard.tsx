@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, BookOpen, Building2, TrendingUp, UserPlus, Settings, GraduationCap, ClipboardList, BarChart3, RefreshCw, History, Search, UserCog, Edit, UserX, UserCheck } from "lucide-react";
+import { Users, BookOpen, Building2, TrendingUp, UserPlus, Settings, GraduationCap, ClipboardList, BarChart3, RefreshCw, History, Search, UserCog, Edit, UserX, UserCheck, Activity } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ import { PaginationControls } from "@/components/PaginationControls";
 import { ParentVerificationTab } from "@/components/ParentVerificationTab";
 import { BulkUserImport } from "@/components/BulkUserImport";
 import { UserExport } from "@/components/UserExport";
+import SystemHealthCard from "@/components/SystemHealthCard";
 
 interface SystemStats {
   totalStudents: number;
@@ -315,11 +316,12 @@ const AdminDashboard = () => {
 
         {/* Tabs for different sections */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
+          <TabsList className="grid w-full max-w-2xl grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="parents">Parents</TabsTrigger>
-            <TabsTrigger value="audit">Audit Logs</TabsTrigger>
+            <TabsTrigger value="health">Health</TabsTrigger>
+            <TabsTrigger value="audit">Audit</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -579,6 +581,11 @@ const AdminDashboard = () => {
           {/* Parent Verification Tab */}
           <TabsContent value="parents">
             <ParentVerificationTab />
+          </TabsContent>
+
+          {/* System Health Tab */}
+          <TabsContent value="health">
+            <SystemHealthCard />
           </TabsContent>
 
           {/* Audit Logs Tab */}

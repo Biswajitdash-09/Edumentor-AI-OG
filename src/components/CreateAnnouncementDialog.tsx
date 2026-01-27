@@ -108,6 +108,10 @@ export function CreateAnnouncementDialog({
           });
         } catch (emailError) {
           console.error("Failed to send email notifications:", emailError);
+          toast({
+            title: "Note",
+            description: "Announcement created but email notifications failed",
+          });
         }
       }
 

@@ -280,6 +280,10 @@ const CourseDetails = () => {
           console.log("Assignment notifications sent");
         } catch (notifError) {
           console.error("Failed to send assignment notifications:", notifError);
+          toast({
+            title: "Note",
+            description: "Assignment created but email notifications failed",
+          });
         }
       }
       

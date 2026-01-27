@@ -196,6 +196,10 @@ const Attendance = () => {
           });
         } catch (emailError) {
           console.error("Failed to send email notifications:", emailError);
+          toast({
+            title: "Note",
+            description: "Session created but email notifications failed",
+          });
         }
 
         toast({

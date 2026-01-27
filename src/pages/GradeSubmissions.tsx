@@ -141,6 +141,10 @@ const GradeSubmissions = () => {
         });
       } catch (emailError) {
         console.error("Failed to send grade notification:", emailError);
+        toast({
+          title: "Note",
+          description: "Grade saved but email notification failed",
+        });
       }
 
       setGradingSubmission(null);

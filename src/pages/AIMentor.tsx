@@ -51,6 +51,8 @@ const AIMentor = () => {
     }
   }, [user]);
 
+  const SEPARATOR_CONTENT = "---NEW_SESSION_SEPARATOR---";
+
   const loadChatHistory = async () => {
     const { data } = await supabase
       .from("chat_messages")
@@ -59,26 +61,25 @@ const AIMentor = () => {
       .order("created_at", { ascending: true });
 
     if (data && data.length > 0) {
-      // Group messages into sessions based on time gaps
       const sessions: ChatSession[] = [];
       let currentSession: ChatSession | null = null;
       let lastMessageTime: Date | null = null;
 
-      data.forEach((msg, index) => {
+      data.forEach((msg) => {
         const msgTime = new Date(msg.created_at);
-        
-        // Start a new session if:
-        // 1. This is the first message, or
-        // 2. The gap from last message is > SESSION_GAP_MINUTES, or
-        // 3. This is a user message after an assistant message with significant gap
-        const shouldStartNewSession = 
+
+        // Check for manual separator by CONTENT, not role
+        const isSeparator = msg.content === SEPARATOR_CONTENT;
+
+        const shouldStartNewSession =
           !currentSession ||
-          !lastMessageTime ||
-          differenceInMinutes(msgTime, lastMessageTime) > SESSION_GAP_MINUTES;
+          isSeparator ||
+          (!lastMessageTime && !isSeparator) ||
+          (lastMessageTime && differenceInMinutes(msgTime, lastMessageTime) > SESSION_GAP_MINUTES);
 
         if (shouldStartNewSession) {
           currentSession = {
-            id: `session-${sessions.length + 1}-${msg.id}`,
+            id: msg.id,
             date: format(msgTime, "MMM d, yyyy"),
             preview: "",
             messages: [],
@@ -87,63 +88,64 @@ const AIMentor = () => {
           sessions.push(currentSession);
         }
 
-        currentSession!.messages.push({ 
-          role: msg.role as "user" | "assistant", 
-          content: msg.content 
-        });
+        if (!isSeparator && currentSession) {
+          currentSession.messages.push({
+            role: msg.role as "user" | "assistant",
+            content: msg.content
+          });
 
-        // Set preview from first user message in session
-        if (msg.role === "user" && !currentSession!.preview) {
-          currentSession!.preview = msg.content.slice(0, 50) + (msg.content.length > 50 ? "..." : "");
+          // Update preview if needed
+          if (msg.role === "user" && !currentSession.preview) {
+            currentSession.preview = msg.content.slice(0, 50) + (msg.content.length > 50 ? "..." : "");
+          }
+          lastMessageTime = msgTime;
+        } else if (isSeparator) {
+          lastMessageTime = msgTime;
         }
-
-        lastMessageTime = msgTime;
       });
 
-      // Reverse to show newest first
-      const sessionsReversed = sessions.reverse();
+      const validSessions = sessions.filter(s => s.messages.length > 0);
+      const sessionsReversed = validSessions.reverse();
       setChatSessions(sessionsReversed);
 
-      // Load the most recent session only if we don't have a current session
-      if (sessionsReversed.length > 0 && !currentSessionId) {
-        const latestSession = sessionsReversed[0];
-        setCurrentSessionId(latestSession.id);
-        setMessages(latestSession.messages);
-      } else if (currentSessionId) {
-        // Keep current session selected but update the list
+      if (!currentSessionId || currentSessionId === "new-chat") {
+        // do nothing
+      } else {
         const existingSession = sessionsReversed.find(s => s.id === currentSessionId);
-        if (!existingSession) {
-          // Current session not in DB yet (new session), keep it in the list
-          const newSession = chatSessions.find(s => s.id === currentSessionId);
-          if (newSession && newSession.messages.length === 0) {
-            setChatSessions(prev => {
-              const filtered = sessionsReversed.filter(s => s.id !== currentSessionId);
-              return [{ ...newSession, preview: messages[0]?.content.slice(0, 50) || "New conversation" }, ...filtered];
-            });
-          }
+        if (existingSession) {
+          setMessages(existingSession.messages);
         }
       }
     }
   };
 
   const saveMessage = async (role: "user" | "assistant", content: string) => {
-    await supabase.from("chat_messages").insert({
+    const { data, error } = await supabase.from("chat_messages").insert({
       user_id: user?.id,
       role,
       content,
-    });
+    }).select().single();
+
+    if (error) {
+      console.error("Error saving message:", error);
+      return null;
+    }
+    return data;
   };
 
   const streamChat = async (userMessage: Message) => {
     const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-mentor-chat`;
-    
+
+    // Filter out separator messages from the request payload
+    const cleanMessages = [...messages, userMessage].filter(m => m.content !== SEPARATOR_CONTENT);
+
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages: [...messages, userMessage] }),
+      body: JSON.stringify({ messages: cleanMessages }),
     });
 
     if (resp.status === 429) {
@@ -224,29 +226,35 @@ const AIMentor = () => {
 
     const userMessage: Message = { role: "user", content: input };
     const isNewSession = messages.length === 0;
-    
-    // If this is the first message in a new session, update the session preview
-    if (isNewSession && currentSessionId) {
-      setChatSessions(prev => prev.map(session => 
-        session.id === currentSessionId 
-          ? { ...session, preview: input.slice(0, 50) + (input.length > 50 ? "..." : "") }
-          : session
-      ));
-    }
-    
+
+    // Optimistic update
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
     try {
-      await saveMessage("user", userMessage.content);
+      let firstMsgData = null;
+
+      // If starts new session, insert separator first
+      if (isNewSession) {
+        // Use 'assistant' role for the separator to comply with DB constraints
+        firstMsgData = await saveMessage("assistant", SEPARATOR_CONTENT);
+      }
+
+      const sentMsgData = await saveMessage("user", userMessage.content);
+
+      if (isNewSession && firstMsgData) {
+        setCurrentSessionId(firstMsgData.id);
+      } else if (isNewSession && sentMsgData) {
+        setCurrentSessionId(sentMsgData.id);
+      }
+
       const assistantContent = await streamChat(userMessage);
-      
+
       if (assistantContent) {
         await saveMessage("assistant", assistantContent);
       }
-      
-      // Refresh history after sending to get proper session grouping
+
       await loadChatHistory();
     } catch (error) {
       console.error("Chat error:", error);
@@ -268,24 +276,8 @@ const AIMentor = () => {
   };
 
   const handleNewChat = () => {
-    // Generate a new unique session ID
-    const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Create a new session entry in the sidebar
-    const newSession: ChatSession = {
-      id: newSessionId,
-      date: format(new Date(), "MMM d, yyyy"),
-      preview: "New conversation",
-      messages: [],
-      startTime: new Date()
-    };
-    
-    // Add to sessions list (at the beginning since newest first)
-    setChatSessions(prev => [newSession, ...prev]);
-    
-    // Clear messages and set the new session as current
     setMessages([]);
-    setCurrentSessionId(newSessionId);
+    setCurrentSessionId("new-chat");
   };
 
   const handleLoadSession = (session: ChatSession) => {
@@ -344,9 +336,8 @@ const AIMentor = () => {
                     <button
                       key={session.id}
                       onClick={() => handleLoadSession(session)}
-                      className={`w-full text-left p-3 rounded-lg hover:bg-muted transition-colors ${
-                        currentSessionId === session.id ? "bg-muted border border-primary/20" : ""
-                      }`}
+                      className={`w-full text-left p-3 rounded-lg hover:bg-muted transition-colors ${currentSessionId === session.id ? "bg-muted border border-primary/20" : ""
+                        }`}
                     >
                       <p className="text-sm font-medium truncate">{session.preview || "New conversation"}</p>
                       <p className="text-xs text-muted-foreground mt-1">{session.date}</p>
@@ -373,9 +364,9 @@ const AIMentor = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setShowHistory(!showHistory)}
                     className="md:hidden"
                   >
@@ -434,11 +425,10 @@ const AIMentor = () => {
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[90%] md:max-w-[80%] rounded-lg px-3 py-2 md:px-4 ${
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
+                      className={`max-w-[90%] md:max-w-[80%] rounded-lg px-3 py-2 md:px-4 ${message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                        }`}
                     >
                       <p className="whitespace-pre-wrap break-words text-sm md:text-base">{message.content}</p>
                     </div>

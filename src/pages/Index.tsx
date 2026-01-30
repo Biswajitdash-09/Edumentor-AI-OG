@@ -25,12 +25,12 @@ const Index = () => {
     enrollments: "..."
   });
   const [statsLoading, setStatsLoading] = useState(true);
-  
+
   const {
     isRegistered: hasBiometricRegistered,
     isSupported: isBiometricSupported
   } = useBiometricAuth();
-  
+
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
       return document.documentElement.classList.contains("dark");
@@ -183,9 +183,9 @@ const Index = () => {
                     Start Learning
                   </Button>
                 </Link>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
+                <Button
+                  size="lg"
+                  variant="outline"
                   className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 gap-2"
                   onClick={() => setShowDemo(true)}
                 >
@@ -289,18 +289,18 @@ const Index = () => {
       <footer className="py-8 sm:py-12 px-4 sm:px-6 border-t border-border">
         <div className="container mx-auto">
           <div className="flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-              <div className="flex items-center gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
                 <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 <span className="text-lg sm:text-xl font-bold">EduMentor AI</span>
               </div>
-              <div className="flex items-center gap-4 text-sm sm:text-base text-muted-foreground">
+              <div className="flex items-center justify-center gap-4 text-sm sm:text-base text-muted-foreground">
                 <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
                 <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
               </div>
-              <p className="text-sm sm:text-base text-muted-foreground text-center">© 2026 EduMentor AI. All rights reserved.</p>
+              <p className="text-sm sm:text-base text-muted-foreground text-center sm:text-right">© 2026 EduMentor AI. All rights reserved.</p>
             </div>
-            
+
             {/* Developer Contact */}
             <div className="border-t border-border pt-6">
               <div className="flex flex-col items-center gap-3 text-center">

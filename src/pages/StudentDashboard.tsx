@@ -57,7 +57,7 @@ const StudentDashboard = () => {
 
   const fetchDashboardData = useCallback(async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       setNewActivityCount(0);
@@ -109,10 +109,10 @@ const StudentDashboard = () => {
       const attendanceRate =
         attendanceRecords && attendanceRecords.length > 0
           ? Math.round(
-              (attendanceRecords.filter((r) => r.status === "present").length /
-                attendanceRecords.length) *
-                100
-            )
+            (attendanceRecords.filter((r) => r.status === "present").length /
+              attendanceRecords.length) *
+            100
+          )
           : 0;
 
       // Fetch today's sessions
@@ -130,7 +130,7 @@ const StudentDashboard = () => {
           time: session.session_time,
           room: "TBA",
           courseId: session.course_id,
-          })) || [];
+        })) || [];
 
       // Fetch recent assignments as announcements
       const { data: recentAssignments } = await supabase
@@ -160,7 +160,7 @@ const StudentDashboard = () => {
       const assignmentsWithUrgency: UpcomingAssignment[] = (upcomingAssignmentsData || []).map((a: any) => {
         const dueDate = new Date(a.due_date);
         const hoursUntilDue = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-        
+
         let urgency: "urgent" | "upcoming" | "future" = "future";
         if (hoursUntilDue <= 24) {
           urgency = "urgent";
@@ -243,7 +243,7 @@ const StudentDashboard = () => {
       .select("full_name")
       .eq("user_id", user.id)
       .single();
-    
+
     if (data) setUserName(data.full_name);
   };
 
@@ -261,8 +261,8 @@ const StudentDashboard = () => {
 
   return (
     <DashboardLayout role="student">
-      <SEOHead 
-        title="Student Dashboard" 
+      <SEOHead
+        title="Student Dashboard"
         description="View your enrolled courses, assignments, attendance, and upcoming classes."
       />
       <div className="space-y-8">
@@ -274,11 +274,11 @@ const StudentDashboard = () => {
           <div className="flex items-center gap-2">
             {/* Network Status Badge */}
             <Badge variant={isOnline ? "outline" : "destructive"} className="gap-1.5">
-              {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+              {isOnline ? <Wifi className="h-3 w-3 text-green-500" /> : <WifiOff className="h-3 w-3" />}
               {isOnline ? "Online" : "Offline"}
               {getPendingCount() > 0 && ` (${getPendingCount()} pending)`}
             </Badge>
-            
+
             {newActivityCount > 0 && (
               <Button onClick={fetchDashboardData} variant="outline" size="sm" className="gap-2">
                 <Bell className="h-4 w-4" />
@@ -290,8 +290,8 @@ const StudentDashboard = () => {
 
         {/* Quick Check-In Button - Mobile Prominent */}
         <Card className="p-4 sm:hidden bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
-          <Button 
-            className="w-full gap-2" 
+          <Button
+            className="w-full gap-2"
             size="lg"
             onClick={() => setCheckInOpen(true)}
           >
@@ -339,37 +339,34 @@ const StudentDashboard = () => {
               {upcomingAssignments.map((assignment) => (
                 <div
                   key={assignment.id}
-                  className={`p-4 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-shadow ${
-                    assignment.urgency === "urgent"
+                  className={`p-4 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-shadow ${assignment.urgency === "urgent"
                       ? "bg-destructive/10 border-l-destructive"
                       : assignment.urgency === "upcoming"
-                      ? "bg-yellow-500/10 border-l-yellow-500"
-                      : "bg-primary/10 border-l-primary"
-                  }`}
+                        ? "bg-yellow-500/10 border-l-yellow-500"
+                        : "bg-primary/10 border-l-primary"
+                    }`}
                   onClick={() => navigate(`/courses/${assignment.courseId}`)}
                 >
                   <h3 className="font-medium text-sm truncate">{assignment.title}</h3>
                   <p className="text-xs text-muted-foreground mt-1">{assignment.courseName}</p>
                   <div className="flex items-center gap-2 mt-2">
-                    <Clock className={`w-3 h-3 ${
-                      assignment.urgency === "urgent"
+                    <Clock className={`w-3 h-3 ${assignment.urgency === "urgent"
                         ? "text-destructive"
                         : assignment.urgency === "upcoming"
-                        ? "text-yellow-600"
-                        : "text-primary"
-                    }`} />
-                    <span className={`text-xs font-medium ${
-                      assignment.urgency === "urgent"
+                          ? "text-yellow-600"
+                          : "text-primary"
+                      }`} />
+                    <span className={`text-xs font-medium ${assignment.urgency === "urgent"
                         ? "text-destructive"
                         : assignment.urgency === "upcoming"
-                        ? "text-yellow-600"
-                        : "text-primary"
-                    }`}>
+                          ? "text-yellow-600"
+                          : "text-primary"
+                      }`}>
                       {assignment.urgency === "urgent"
                         ? "Due in < 24h"
                         : assignment.urgency === "upcoming"
-                        ? "Due in 1-3 days"
-                        : new Date(assignment.dueDate).toLocaleDateString()}
+                          ? "Due in 1-3 days"
+                          : new Date(assignment.dueDate).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
